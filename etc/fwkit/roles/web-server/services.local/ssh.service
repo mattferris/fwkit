@@ -1,1 +1,1 @@
-/etc/fwkit/services/local/ssh.service
+../../../services/local/ssh.service

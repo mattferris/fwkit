@@ -1,107 +1,360 @@
 #!/bin/sh
 
-action=$1
-workdir=$2
-
+etcdir=/etc/fwkit
 libdir=/var/lib/fwkit
+
+mode=$1
+action=$2
+
+if [ ! -z "$FWKIT_ETCDIR" ]; then
+    etcdir=$FWKIT_ETCDIR
+fi
+
 if [ ! -z "$FWKIT_LIBDIR" ]; then
     libdir=$FWKIT_LIBDIR
 fi
 
-case $action in
+case $mode in
 
-    clean)
-        if [ -f "$libdir/cached.rules" ]; then
-            rm "$libdir/cached.rules"
-            echo "cleaned cached rules"
-        else
-            echo "no cached rules to clean"
+    rules)
+
+        #
+        # All actions related to rules mode
+        #
+
+        case $action in
+
+            clean)
+                rm "$libdir/*" > /dev/null 2>&1
+	        ;;
+
+            compile)
+                if [ -f "$libdir/compile.tmp" ]; then
+                    rm "$libdir/compiled.tmp"
+                fi
+
+                if [ ! -d "$etcdir" ]; then
+                    echo "error: config directory $etcdir doesn't exist or isn't a directory"
+                    exit 1
+                fi
+
+                if [ ! -e "$etcdir/role.active" ]; then
+                    echo "error: no role specified"
+                    exit 1
+                fi
+
+                policy="$etcdir/role.active/policy.rules"
+                if [ -f "$policy" ]; then
+                    cat "$policy" >> "$libdir/compiled.tmp"
+                fi
+
+                locsrv="$etcdir/role.active/services.local"
+                srvnum=$( find "$locsrv" | wc -l )
+                if [ -d "$locsrv" -a "$srvnum" -gt 1 ]; then
+                    cat "$locsrv/*" >> "$libdir/compiled.tmp"
+                fi
+
+                rmtsrv="$etcdir/role.active/services.remote"
+                srvnum=$( find "$rmtsrv" | wc -l )
+                if [ -d "$rmtsrv" -a "$srvnum" -gt 1 ]; then
+                    cat "$rmtsrv/*" >> "$libdir/compiled.tmp"
+                fi
+
+                if [ -d "$etcdir/rules.d" ]; then
+                    for i in $( ls -1 "$etcdir/rules.d" ); do
+                        cat "$etcdir/rules.d/$i" >> "$libdir/compiled.tmp"
+                    done
+                fi
+
+                if [ ! -f "$libdir/compiled.tmp" ]; then
+                    echo "notice: no rules found!"
+                    exit
+                fi
+
+                mv "$libdir/compiled.tmp" "$libdir/compiled.rules"
+
+                if [ -f "$libdir/cached.rules" ]; then
+                    rm "$libdir/cached.rules"
+                fi
+
+                echo "comiled rules into $libdir/compiled.rules"
+                ;;
+
+            load)
+
+                if [ -f "$libdir/cached.rules" ]; then
+                    echo -n "loading cached rules..."
+                    /bin/iptables-restore < "$libdir/cached.rules"
+                    echo "done"
+                else
+                    echo -n "loading compiled rules..."
+                    $( /bin/sh "$libdir/compiled.rules" )
+                    echo "done"
+                fi
+                ;;
+
+            unload)
+                /bin/iptables-save > "$libdir/cached.rules"
+
+                iptables -P INPUT ACCEPT
+                iptables -P OUTPUT ACCEPT
+                iptables -P FORWARD ACCEPT
+                iptables -F -t filter
+                iptables -F -t nat
+                iptables -F -t mangle
+                iptables -F -t raw
+                iptables -F -t security
+                iptables -X
+
+                echo "rules unloaded"
+                ;;
+
+            *)
+                echo
+                echo "usage: $0 rules { action }"
+                echo
+                echo "Available actions:"
+                echo
+                echo "    clean   Clear the cached ruleset"
+                echo "    compile Compile the rules but don't load them"
+                echo "    load    Load the ruleset (compile if cached rules aren't available"
+                echo "    unload  Cached the loaded ruleset and unload it"
+                echo
+                exit 1
+                ;;
+
+        esac
+        ;;
+
+    role)
+
+        #
+        # all actions related to role mode
+        #
+
+        if [ ! -h "$etcdir/role.active" ]; then
+            echo "error: no active role specified"
+            exit 1
         fi
-	;;
 
-    compile)
-            if [ -f "$libdir/compile.tmp" ]; then
-                rm "$libdir/compiled.tmp"
-            fi
+        role=$( basename $(readlink "$etcdir/role.active") )
 
-            if [ ! -d "$workdir" ]; then
-                echo "error: working directory $workdir doesn't exist or isn't a directory"
-                exit 1
-            fi
+        case $action in
 
-            if [ ! -e "$workdir/role.active" ]; then
-                echo "error: no role specified"
-                exit 1
-            fi
+            list)
+                if [ ! -d "$etcdir/roles" ]; then
+                    echo "error: roles directory $etcdir/roles doesn't exist"
+                    exit 1
+                fi
 
-            policy="$workdir/role.active/policy.rules"
-            if [ -f "$policy" ]; then
-                cat "$policy" >> "$libdir/compiled.tmp"
-            fi
-
-            locsrv="$workdir/role.active/services.local"
-            srvnum=$( find "$locsrv" | wc -l )
-            if [ -d "$locsrv" -a "$srvnum" -gt 1 ]; then
-                cat "$locsrv/*" >> "$libdir/compiled.tmp"
-            fi
-
-            rmtsrv="$workdir/role.active/services.remote"
-            srvnum=$( find "$rmtsrv" | wc -l )
-            if [ -d "$rmtsrv" -a "$srvnum" -gt 1 ]; then
-                cat "$rmtsrv/*" >> "$libdir/compiled.tmp"
-            fi
-
-            if [ -d "$workdir/rules.d" ]; then
-                for i in $( ls -1 "$workdir/rules.d" ); do
-                    cat "$workdir/rules.d/$i" >> "$libdir/compiled.tmp"
+                for i in $( ls -1 "$etcdir/roles"); do
+                    if [ "$i" = "$role" ]; then
+                        echo -n "* "
+                    else
+                        echo -n "  "
+                    fi
+                    echo $i
                 done
-            fi
 
-            if [ ! -f "$libdir/compiled.tmp" ]; then
-                echo "notice: no rules found!"
-                exit
-            fi
+                ;;
 
-            mv "$libdir/compiled.tmp" "$libdir/compiled.rules"
+            set)
+                newrole=$3
+                if [ -z "$newrole" ]; then
+                    echo "error: no new role specified"
+                    exit 1
+                fi
 
-            if [ -f "$libdir/cached.rules" ]; then
-                rm "$libdir/cached.rules"
-            fi
+                if [ ! -d "$etcdir/roles/$newrole" ]; then
+                    echo "error: new role $newrole doesn't exist"
+                    exit 1
+                fi
 
-            echo "comiled rules into $libdir/compiled.rules"
+                rm "$etcdir/role.active"
+                ln -s "roles/$newrole" "$etcdir/role.active"
+
+                echo "role changed: $role -> $newrole"
+                ;;
+
+            get)
+                echo "$role"
+                ;;
+
+            *)
+                echo
+                echo "usage: $0 role { action }"
+                echo
+                echo "Available actions:"
+                echo
+                echo "    get     Get the current role"
+                echo "    list    List available roles"
+                echo "    set     Set the current role"
+                echo
+                exit 1
+                ;;
+
+        esac
         ;;
 
-    load)
-        if [ -f "$libdir/cached.rules" ]; then
-            echo -n "loading cached rules..."
-            /bin/iptables-restore < "$libdir/cached.rules"
-            echo "done"
-        else
-            echo -n "loading compiled rules..."
-            $( /bin/sh "$libdir/compiled.rules" )
-            echo "done"
-        fi
-        ;;
+    service)
 
-    unload)
-        /bin/iptables-save > "$libdir/cached.rules"
+        #
+        # All actions related to service mode
+        #
 
-        iptables -P INPUT ACCEPT
-        iptables -P OUTPUT ACCEPT
-        iptables -P FORWARD ACCEPT
-        iptables -F -t filter
-        iptables -F -t nat
-        iptables -F -t mangle
-        iptables -F -t raw
-        iptables -F -t security
-        iptables -X
+        case $action in
 
-        echo "rules unloaded"
+            disable)
+
+                type=$3
+                service=$4
+
+                shift; shift
+
+                if [ ! "$type" = "local" -a ! "$type" = "remote" ]; then
+                    echo "error: invalid service type $type, must be 'local' or 'remote'"
+                    exit 1
+                fi
+
+                if [ -z "$service" ]; then
+                    echo "error: no service specified"
+                    exit 1
+                fi
+
+                services=""
+                while shift; do
+
+                    if [ -z "$1" ]; then
+                        break
+                    fi
+
+                    service=$1
+
+                    if [ ! -f "$etcdir/services/$type/$service.service" ]; then
+                        echo "error: $type service $service doesn't exist"
+                        exit 1
+                    fi
+
+                    if [ ! -d "$etcdir/role.active/services.$type" ]; then
+                        echo "error: directory $etcdir/role.active/services.$type doesn't exist"
+                        exit 1
+                    fi
+
+                    if [ ! -h "$etcdir/role.active/services.$type/$service.service" ]; then
+                        echo "$type service $service already disabled"
+                        exit
+                    fi
+
+                    rm "$etcdir/role.active/services.$type/$service.service"
+                    services="$services $service"
+
+                done
+
+                echo "disabled $type service(s)$services"
+
+                ;;
+
+            enable)
+
+                type=$3
+                service=$4
+
+                shift; shift
+
+                if [ ! "$type" = "local" -a ! "$type" = "remote" ]; then
+                    echo "error: invalid service type $type, must be 'local' or 'remote'"
+                    exit 1
+                fi
+
+                if [ -z "$service" ]; then
+                    echo "error: no service specified"
+                    exit 1
+                fi
+
+                services=""
+                while shift; do
+
+                    if [ -z "$1" ]; then
+                        break
+                    fi
+
+                    service=$1
+
+                    if [ ! -f "$etcdir/services/$type/$service.service" ]; then
+                        echo "error: $type service $service doesn't exist"
+                        exit 1
+                    fi
+
+                    if [ ! -d "$etcdir/role.active/services.$type" ]; then
+                        echo "error: directory $etcdir/role.active/services.$type doesn't exist"
+                        exit 1
+                    fi
+
+                    if [ -h "$etcdir/role.active/services.$type/$service.service" ]; then
+                        echo "$type service $service already enabled"
+                        exit
+                    fi
+
+                    ln -s "../../../services/$type/$service.service" "$etcdir/role.active/services.$type"
+
+                    services="$services $service"
+
+                done
+
+                echo "enabled $type service(s)$services"
+
+                ;;
+
+            list)
+
+                echo
+                echo "Local services"
+
+                for i in $( ls -1 "$etcdir/services/local" ); do
+                    if [ -h "$etcdir/role.active/services.local/$i" ]; then
+                        echo -n "  * "
+                    else
+                        echo -n "    "
+                    fi
+                    echo $i | sed s/.service//
+                done
+
+                echo
+                echo "Remote services"
+
+                for i in $( ls -1 "$etcdir/services/remote" ); do
+                    if [ -h "$etcdir/role.active/services.remote/$i" ]; then
+                        echo -n "  * "
+                    else
+                        echo -n "    "
+                    fi
+                    echo $i | sed s/.service//
+                done
+
+                echo
+
+                ;;
+
+            *)
+                echo
+                echo "usage: $0 service { action }"
+                echo
+                echo "Available actions:"
+                echo
+                echo "    disable Disable a service"
+                echo "    enable  Enable a service"
+                echo "    list    List available services"
+                echo
+                ;;
+
+        esac
+
         ;;
 
     *)
-        echo "usage: $0 { clean | compile | load | unload } dir"
+        echo "usage: $0 { role | rules | service }"
         exit 1
         ;;
 
 esac
+
