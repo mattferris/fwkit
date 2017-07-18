@@ -1,0 +1,4 @@
+# fwkit - default chain policies for web-server role
+
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP

@@ -1,0 +1,93 @@
+#!/bin/sh
+
+action=$1
+workdir=$2
+
+libdir=$libdir
+if [ ! -n "$FWKIT_LIBDIR" ]; then
+    libdir=$FWKIT_LIBDIR
+fi
+
+case in $action
+
+    clean)
+        if [ -x $libdir/cached.rules ]; then
+            rm $libdir/cached.rules
+            echo "cleaned cached rules"
+        else
+            echo "no cached rules to clean"
+        fi
+	;;
+
+    compile)
+            if [ -x $libdir/compile.tmp ]; then
+                rm $libdir/compile.tmp
+            fi
+
+            if [ ! -x "$workdir" ]; then
+                echo "error: working directory $workdir doesn't exist"
+                exit 1
+            fi
+
+            if [ ! -x "$workdir/role" ]; then
+                echo "error: no role specified"
+                exit 1
+            fi
+
+            if [ -x "$workdir/role/policy.rules" ]; then
+                cat "$workdir/role/policy.rules" >> $libdir/compile.tmp
+            fi
+
+            if [ -x "$workdir/role/services.local" ]; then
+                cat "$workdir/role/services.local" >> $libdir/compile.tmp
+            fi
+
+            if [ -x "$workdir/role/services.remote" ]; then
+                cat "$workdir/role/services.remote" >> $libdir/compile.tmp
+            fi
+
+            if [ -x "$workdir/rules.d" ]; then
+                for i in $( ls -1 "$workdir/rules.d" ); do
+                    cat "$workdir/rules.d/$i" >> $libdir/compile.tmp
+                end
+            fi
+
+            mv $libdir/compiled.tmp $libdir/compiled.rules
+
+            echo "comiled rules into $libdir/compiled.rules"
+        ;;
+
+    load)
+        if [ -x $libdir/cached.rules ]; then
+            echo -n "loading cached rules..."
+            /bin/iptables-restore < $libdir/cached.rules
+            echo "done"
+        else
+            echo -n "loading compiled rules..."
+            $( /bin/sh $libdir/compiled.rules )
+            echo "done"
+        fi
+        ;;
+
+    unload)
+        /bin/iptables-save > $libdir/cached.rules
+
+        iptables -P INPUT ACCEPT
+        iptables -P OUTPUT ACCEPT
+        iptables -P FORWARD ACCEPT
+        iptables -F -t filter
+        iptables -F -t nat
+        iptables -F -t mangle
+        iptables -F -t raw
+        iptables -F -t security
+        iptables -X
+
+        echo "rules unloaded"
+        ;;
+
+    *)
+        echo "usage: $0 { clean | compile | load | unload } dir"
+        exit 1
+        ;;
+
+esac

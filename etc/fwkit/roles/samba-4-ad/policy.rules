@@ -1,0 +1,4 @@
+# fwkit - chain policies for samba-4-ad role
+
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP

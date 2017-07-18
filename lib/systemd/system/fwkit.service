@@ -1,0 +1,11 @@
+[Unit]
+Description=SD57 Firewall Kit Control Service
+After=network.target
+
+[Service]
+EnvironmentFile=-/etc/default/fwkit
+ExecStart=/usr/sbin/fwkit unload && /usr/sbin/fwkit load /etc/fwkit
+ExecStop=/usr/sbin/fwkit unload
+
+[Install]
+WantedBy=multi-user.target
