@@ -3,16 +3,16 @@
 action=$1
 workdir=$2
 
-libdir=$libdir
-if [ ! -n "$FWKIT_LIBDIR" ]; then
+libdir=/var/lib/fwkit
+if [ ! -z "$FWKIT_LIBDIR" ]; then
     libdir=$FWKIT_LIBDIR
 fi
 
-case in $action
+case $action in
 
     clean)
-        if [ -x $libdir/cached.rules ]; then
-            rm $libdir/cached.rules
+        if [ -f "$libdir/cached.rules" ]; then
+            rm "$libdir/cached.rules"
             echo "cleaned cached rules"
         else
             echo "no cached rules to clean"
@@ -20,57 +20,71 @@ case in $action
 	;;
 
     compile)
-            if [ -x $libdir/compile.tmp ]; then
-                rm $libdir/compile.tmp
+            if [ -f "$libdir/compile.tmp" ]; then
+                rm "$libdir/compiled.tmp"
             fi
 
-            if [ ! -x "$workdir" ]; then
-                echo "error: working directory $workdir doesn't exist"
+            if [ ! -d "$workdir" ]; then
+                echo "error: working directory $workdir doesn't exist or isn't a directory"
                 exit 1
             fi
 
-            if [ ! -x "$workdir/role" ]; then
+            if [ ! -e "$workdir/role.active" ]; then
                 echo "error: no role specified"
                 exit 1
             fi
 
-            if [ -x "$workdir/role/policy.rules" ]; then
-                cat "$workdir/role/policy.rules" >> $libdir/compile.tmp
+            policy="$workdir/role.active/policy.rules"
+            if [ -f "$policy" ]; then
+                cat "$policy" >> "$libdir/compiled.tmp"
             fi
 
-            if [ -x "$workdir/role/services.local" ]; then
-                cat "$workdir/role/services.local" >> $libdir/compile.tmp
+            locsrv="$workdir/role.active/services.local"
+            srvnum=$( find "$locsrv" | wc -l )
+            if [ -d "$locsrv" -a "$srvnum" -gt 1 ]; then
+                cat "$locsrv/*" >> "$libdir/compiled.tmp"
             fi
 
-            if [ -x "$workdir/role/services.remote" ]; then
-                cat "$workdir/role/services.remote" >> $libdir/compile.tmp
+            rmtsrv="$workdir/role.active/services.remote"
+            srvnum=$( find "$rmtsrv" | wc -l )
+            if [ -d "$rmtsrv" -a "$srvnum" -gt 1 ]; then
+                cat "$rmtsrv/*" >> "$libdir/compiled.tmp"
             fi
 
-            if [ -x "$workdir/rules.d" ]; then
+            if [ -d "$workdir/rules.d" ]; then
                 for i in $( ls -1 "$workdir/rules.d" ); do
-                    cat "$workdir/rules.d/$i" >> $libdir/compile.tmp
-                end
+                    cat "$workdir/rules.d/$i" >> "$libdir/compiled.tmp"
+                done
             fi
 
-            mv $libdir/compiled.tmp $libdir/compiled.rules
+            if [ ! -f "$libdir/compiled.tmp" ]; then
+                echo "notice: no rules found!"
+                exit
+            fi
+
+            mv "$libdir/compiled.tmp" "$libdir/compiled.rules"
+
+            if [ -f "$libdir/cached.rules" ]; then
+                rm "$libdir/cached.rules"
+            fi
 
             echo "comiled rules into $libdir/compiled.rules"
         ;;
 
     load)
-        if [ -x $libdir/cached.rules ]; then
+        if [ -f "$libdir/cached.rules" ]; then
             echo -n "loading cached rules..."
-            /bin/iptables-restore < $libdir/cached.rules
+            /bin/iptables-restore < "$libdir/cached.rules"
             echo "done"
         else
             echo -n "loading compiled rules..."
-            $( /bin/sh $libdir/compiled.rules )
+            $( /bin/sh "$libdir/compiled.rules" )
             echo "done"
         fi
         ;;
 
     unload)
-        /bin/iptables-save > $libdir/cached.rules
+        /bin/iptables-save > "$libdir/cached.rules"
 
         iptables -P INPUT ACCEPT
         iptables -P OUTPUT ACCEPT
