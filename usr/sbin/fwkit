@@ -48,21 +48,29 @@ case $mode in
                     cat "$policy" >> "$libdir/compiled.tmp"
                 fi
 
+                if [ -d "$etcdir/rules.d/pre" ]; then
+                    for i in $( ls -1 "$etcdir/rules.d/pre" ); do
+                        cat "$etcdir/rules.d/pre/$i" >> "$libdir/compiled.tmp"
+                    done
+                fi
+
                 locsrv="$etcdir/role.active/services.local"
-                srvnum=$( find "$locsrv" | wc -l )
-                if [ -d "$locsrv" -a "$srvnum" -gt 1 ]; then
-                    cat "$locsrv/*" >> "$libdir/compiled.tmp"
+                if [ -d "$locsrv" ]; then
+                    for i in $( ls -1 "$locsrv" ); do
+                        cat "$locsrv/$i" >> "$libdir/compiled.tmp"
+                    done
                 fi
 
                 rmtsrv="$etcdir/role.active/services.remote"
-                srvnum=$( find "$rmtsrv" | wc -l )
-                if [ -d "$rmtsrv" -a "$srvnum" -gt 1 ]; then
-                    cat "$rmtsrv/*" >> "$libdir/compiled.tmp"
+                if [ -d "$rmtsrv" ]; then
+                    for i in $( ls -1 "$rmtsrv" ); do
+                        cat "$rmtsrv/$i" >> "$libdir/compiled.tmp"
+                    done
                 fi
 
-                if [ -d "$etcdir/rules.d" ]; then
-                    for i in $( ls -1 "$etcdir/rules.d" ); do
-                        cat "$etcdir/rules.d/$i" >> "$libdir/compiled.tmp"
+                if [ -d "$etcdir/rules.d/post" ]; then
+                    for i in $( ls -1 "$etcdir/rules.d/post" ); do
+                        cat "$etcdir/rules.d/post/$i" >> "$libdir/compiled.tmp"
                     done
                 fi
 
