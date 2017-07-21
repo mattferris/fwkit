@@ -92,9 +92,12 @@ case $mode in
 
                 if [ -f "$libdir/cached.rules" ]; then
                     echo -n "loading cached rules..."
-                    /bin/iptables-restore < "$libdir/cached.rules"
+                    /sbin/iptables-restore < "$libdir/cached.rules"
                     echo "done"
                 else
+                    if [ ! -f "$libdir/compiled.rules" ]; then
+                        $0 rules compile
+                    fi
                     echo -n "loading compiled rules..."
                     $( /bin/sh "$libdir/compiled.rules" )
                     echo "done"
@@ -102,7 +105,7 @@ case $mode in
                 ;;
 
             unload)
-                /bin/iptables-save > "$libdir/cached.rules"
+                /sbin/iptables-save > "$libdir/cached.rules"
 
                 iptables -P INPUT ACCEPT
                 iptables -P OUTPUT ACCEPT
