@@ -1,0 +1,2 @@
+# fwkit - remote/https.service
+iptables -A OUTPUT -p tcp --dport 443 -m conntrack --cstate NEW -j ACCEPT

@@ -1,0 +1,2 @@
+# fwkit - remote/msgc.service - Microsoft Global Catalog
+iptables -A OUTPUT -p tcp --dport 3268 -m conntrack --cstate NEW -j ACCEPT

@@ -1,0 +1,3 @@
+# fwkit - remote/ldap.service
+iptables -A OUTPUT -p tcp --dport 389 -m conntrack --cstate NEW -j ACCEPT
+iptables -A OUTPUT -p udp --dport 389 -m conntrack --cstate NEW -j ACCEPT

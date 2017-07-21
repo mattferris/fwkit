@@ -1,0 +1,3 @@
+# fwkit - remote/kerberos.service
+iptables -A OUTPUT -p tcp --dport 88 -m conntrack --cstate NEW -j ACCEPT
+iptables -A OUTPUT -p udp --dport 88 -m conntrack --cstate NEW -j ACCEPT

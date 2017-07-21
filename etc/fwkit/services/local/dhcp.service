@@ -1,0 +1,3 @@
+# fwkit - local/dhcp.service
+iptables -A INPUT -p udp --dport 67 -m conntrack --cstate NEW -j ACCEPT
+iptables -A OUTPUT -p udp --dport 68 -m conntrack --cstate NEW -j ACCEPT

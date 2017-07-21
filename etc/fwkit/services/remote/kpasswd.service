@@ -1,0 +1,3 @@
+# fwkit - remote/kpasswd.service - Kerberos kpasswd
+iptables -A OUTPUT -p tcp --dport 464 -m conntrack --cstate NEW -j ACCEPT
+iptables -A OUTPUT -p udp --dport 464 -m conntrack --cstate NEW -j ACCEPT

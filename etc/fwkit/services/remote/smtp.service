@@ -1,0 +1,2 @@
+# fwkit - remote/smtp.service
+iptables -A OUTPUT -p tcp --dport 25 -m conntrack --cstate NEW -j ACCEPT

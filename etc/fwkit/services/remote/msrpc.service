@@ -1,0 +1,7 @@
+# fwkit - remote/msrpc.service - Dynamic RPC Ports
+
+# prior to samba 4.7
+iptables -A OUTPUT -p tcp --dport 1024:1300 -m conntrack --cstate NEW -j ACCEPT
+
+# samba 4.7+
+iptables -A OUTPUT -p tcp --dport 49152:65535 -m conntrack --cstate NEW -j ACCEPT

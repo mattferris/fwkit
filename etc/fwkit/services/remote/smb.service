@@ -1,0 +1,2 @@
+# fwkit - remote/smb.service
+iptables -A OUTPUT -p tcp --dport 445 -m conntrack --cstate NEW -j ACCEPT

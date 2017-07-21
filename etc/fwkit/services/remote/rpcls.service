@@ -1,0 +1,2 @@
+# fwkit - remote/rpcls.service - End Point Mapper (DCE/RPC Locator Service)
+iptables -A OUTPUT -p tcp --dport 135 -m conntrack --cstate NEW -j ACCEPT

@@ -1,13 +1,13 @@
 # fwkit - rules.d/pre/0default.rules
 
 # stateful traffic
--A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
--A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -m conntrack --cstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m conntrack --cstate ESTABLISHED,RELATED -j ACCEPT
 
 # loopback traffic
--A INPUT -i lo -j ACCEPT
--A OUTPUT -o lo -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
 
 # icmp traffic
--A INPUT -p icmp -j ACCEPT
--A OUTPUT -p icmp -j ACCEPT
+iptables -A INPUT -p icmp -j ACCEPT
+iptables -A OUTPUT -p icmp -j ACCEPT

@@ -1,0 +1,2 @@
+# fwkit - remote/ntp.service
+iptables -A OUTPUT -p udp --dport 123 -m conntrack --cstate NEW -j ACCEPT
