@@ -147,12 +147,10 @@ case $mode in
         # all actions related to role mode
         #
 
-        if [ ! -h "$etcdir/role.active" ]; then
-            echo "error: no active role specified"
-            exit 1
+        if [ -h "$etcdir/role.active" ]; then
+            role=$( basename $(readlink "$etcdir/role.active") )
         fi
 
-        role=$( basename $(readlink "$etcdir/role.active") )
 
         case $action in
 
@@ -195,6 +193,10 @@ case $mode in
                 ;;
 
             get)
+                if [ -z "$role" ]; then
+                    echo "error: no active role specified"
+                    exit 1
+                fi
                 echo "$role"
                 ;;
 
