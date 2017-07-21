@@ -1,8 +1,8 @@
 # fwkit - rules.d/pre/0default.rules
 
 # stateful traffic
-iptables -A INPUT -m conntrack --cstate ESTABLISHED,RELATED -j ACCEPT
-iptables -A OUTPUT -m conntrack --cstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 # loopback traffic
 iptables -A INPUT -i lo -j ACCEPT
