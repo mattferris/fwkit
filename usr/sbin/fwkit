@@ -185,7 +185,10 @@ case $mode in
                     exit 1
                 fi
 
-                rm "$etcdir/role.active"
+                if [ -h "$etcdir/role.active" ]; then
+                    rm "$etcdir/role.active"
+                fi
+
                 ln -s "roles/$newrole" "$etcdir/role.active"
 
                 echo "role changed: $role -> $newrole"
