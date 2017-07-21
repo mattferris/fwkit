@@ -1,2 +1,2 @@
 # fwkit - local/smtp.service
-iptables -A INPUT -p tcp --dport 25 -m conntrack --cstate NEW -j ACCEPT
+iptables -A INPUT -p tcp --dport 25 -m conntrack --ctstate NEW -j ACCEPT

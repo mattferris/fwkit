@@ -1,2 +1,2 @@
 # fwkit - local/ldaps.service
-iptables -A INPUT -p tcp --dport 636 -m conntrack --cstate NEW -j ACCEPT
+iptables -A INPUT -p tcp --dport 636 -m conntrack --ctstate NEW -j ACCEPT

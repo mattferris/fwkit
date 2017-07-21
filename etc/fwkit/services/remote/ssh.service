@@ -1,2 +1,2 @@
 # fwkit - remote/ssh.service
-iptables -A OUTPUT -p tcp --dport 22 -m conntrack --cstate NEW -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 22 -m conntrack --ctstate NEW -j ACCEPT

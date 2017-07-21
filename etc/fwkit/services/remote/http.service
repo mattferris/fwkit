@@ -1,2 +1,2 @@
 # fwkit - remote/http.service
-iptables -A OUTPUT -p tcp --dport 80 -m conntrack --cstate NEW -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 80 -m conntrack --ctstate NEW -j ACCEPT

@@ -1,2 +1,2 @@
 # fwkit - remote/ldaps.service
-iptables -A OUTPUT -p tcp --dport 636 -m conntrack --cstate NEW -j ACCEPT
+iptables -A OUTPUT -p tcp --dport 636 -m conntrack --ctstate NEW -j ACCEPT
