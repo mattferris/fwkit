@@ -25,7 +25,7 @@ case $mode in
         case $action in
 
             clean)
-                for i in $( "$libdir" ); do
+                for i in $( ls -1 "$libdir" ); do
                     rm "$libdir/$i"
                 done
 	        ;;
