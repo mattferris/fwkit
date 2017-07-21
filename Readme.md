@@ -3,12 +3,9 @@ fwkit
 
 A modular approach to iptables-based firewall rulesets.
 
-*fwkit* is primarily designed around the concept of *roles* and *services*. Roles maintain a collection of enabled services. A ruleset is compiled based on the services enabled within the current role. Roles can be customized to suit any need, and a number of roles are configured by default.
+*fwkit* is primarily designed around the concept of *roles* and *services*. Roles maintain a collection of enabled services. A ruleset is compiled based on the services enabled for the *active* role. Roles can be customized to suit any need, and a number of roles are configured by default.
 
-Roles
------
-
-Get a list of available roles.
+You can view a list of available roles, and set one of them to be the active role.
 
 ```
 # fwkit role list
@@ -16,122 +13,189 @@ Get a list of available roles.
   fog
   nextcloud
   open
-* samba-ad-dc
+  samba-ad-dc
+  web-server
+
+# fwkit role set file-server
+role changed: samba-ad-dc -> file-server
+
+# fwkit role list
+* file-server
+  fog
+  nextcloud
+  open
+  samba-ad-dc
   web-server
 ```
 
-The asterisk denotes the active role. You can also specifically request the active role.
+Now the active role has been set to `file-server`, and the role listing indicated this.
 
-```
-# fwkit role get
-samba-ad-dc
-```
-
-Change the active role.
-
-```
-# fwkit role set file-server
-role changed: samba-ad-dc -> file-server
-```
-
-Services
---------
-
-Services are broken into two groups: local and remote. Local services are those host locally, while remote services are services that are not hosted locally.
-
-List the services for the active role.
+You can view the services enabled for the role.
 
 ```
 # fwkit service list
 
-Local services
-    cups
-    dhcp
-  * dns
-    ftp
-    http
-    https
-  * kerberos
-  * kpasswd
-  * ldap
-  * ldaps
-  * msgc
-  * msgc-ssl
-  * msrpc
-  * ntp
-    radacct
-    radius
-  * rpcls
-    smb
-  * smtp
-  * ssh
-    tftp
+LOCAL SERVICES
+Active Name           Description
 
-Remote services
-  * dns
-  * http
-    https
-  * kerberos
-  * kpasswd
-  * ldap
-  * ldaps
-  * msgc
-  * msgc-ssl
-  * msrpc
-  * ntp
-  * rpcls
-  * smb
-  * smtp
-  * ssh
+     * cups           CUPS (IPP); 631/tcp, 631/udp
+     * dhcp           Dynamic Host Configuration Protocol; 67/udp, 68/udp
+       dns            Domain Name Service; 53/tcp, 53/udp
+       ftp            File Transfer Protocol; 20/tcp, 21/tcp, 1024-65535/tcp
+       http           Hypertext Transfer Protocol; 80/tcp
+       https          Hypertext Transfer Protocol over TLS; 443/tcp
+       kerberos       Kerberos v5; 88/tcp. 88/udp
+       kpasswd        Kerberos v5 kpasswd; 464/tcp, 464/udp
+       ldap           Lightweight Directory Access Protocol; 389/tcp, 389/udp
+       ldaps          Lightweight Directory Access Protocol over TLS; 636/tcp
+       msgc           Microsoft Global Catalog (Active Directory); 3268/tcp
+       msgc-ssl       Microsoft Global Catalog over TLS (Active Directory); 3269/tcp
+       msrpc          Microsoft RPC Dynamic Ports; 1024-1300/tcp, 49152-65535/tcp
+     * ntp            Network Time Protocol; 123/udp
+       radacct        RADIUS Accounting; 1813/tcp, 1813/udp
+     * radius         RADIUS Authentication; 1812/tcp, 1812/udp
+     * rpcls          Microsoft End Point Mapper (DCE/RPC Locator Service); 135/tcp
+     * smb            Server Message Block (SMB); 445/tcp
+     * smtp           Simple Message Transfer Protocol; 25/tcp
+     * ssh            Secure Shell Server; 22/tcp
+     * tftp           Trivial File Transfer Protocol; 69/udp
+
+REMOTE SERVICES
+Active Name           Description
+
+     * dns            Domain Name Service; 53/tcp, 53/udp
+     * http           Hypertext Transfer Protocol; 80/tcp
+       https          Hypertext Transfer Protocol over TLS; 443/tcp
+     * kerberos       Kerberos v5; 88/tcp, 88/udp
+     * kpasswd        Kerberos v5 kpasswd; 464/tcp, 464/udp
+       ldap           Lightweight Directory Access Protocol; 389/tcp, 389/udp
+       ldaps          Lightweight Directory Access Protocol over TLS; 636/tcp
+       msgc           Microsoft Global Catalog (Active Directory); 3268/tcp
+       msgc-ssl       Microsoft Global Catalog over TLS (Active Directory); 3269/tcp
+       msrpc          Microsoft RPC Dynamic Ports; 1024-1300/tcp, 49152-65535/tcp
+     * ntp            Network Time Protocol; 123/udp
+       rpcls          Microsoft End Point Mapper (DCE/RPC Locator Service); 135/tcp
+       smb            Server Message Block (SMB); 445/tcp
+     * smtp           Simple Message Transfer Protocol; 25/tcp
+     * ssh            Secure Shell Server; 22/tcp
 ```
 
-Disable the local ssh service.
+A listing of all available local and remote services is display, with a description and port listing.
+
+Enabling and disabling services is easy.
 
 ```
-# fwkit service disable local ssh
-disabled local service(s) ssh
+# fwkit service enable local ldap ldaps
+enabled local service(s) ldap ldaps
 ```
 
-Enable the local ssh service as well as the local http service.
+Once you've configured the appropriate services, you can load the ruleset.
 
 ```
-# fwkit service enable local ssh http
-enabled local service(s) ssh http
-```
-
-Rules
------
-
-Load the ruleset.
-
-```
-# fwkit ruleset load
+# fwkit rules load
 compiled rules into /var/lib/fwkit/compiled.rules
 loading compiled rules...done
 ```
 
-Unload the ruleset.
+Unloading the ruleset is simple, and *fwkit* caches the ruleset for later.
 
 ```
 # fwkit rules unload
 rules unloaded
 ```
 
-Unloading the rules caches the ruleset (and all counter data). Loading the ruleset again will cause the cached ruleset to be loaded instead of compiling the ruleset from scratch. This is indicated when loading the rulset.
-
-```
-# fwkit rules load
-loading cached rules...done
-```
-
-If services are enabled or disable, or the role changes, you'll want to clear the cached rules (`clean`) and reload the rulset.
+Subsequent calls to `fwkit rules load` will load the cached ruleset. If you makes changes to the enabled services, you'll need to clean the cache before loading the ruleset to see your changes.
 
 ```
 # fwkit rules unload && fwkit rules clean && fwkit rules load
 ```
 
-Or do a `reload`, which does the above, just in one simple command.
+There is a handy shortcut for all three actions.
 
 ```
-# fwkit rules reload
+# fwkit reload
+```
+
+Customizing Your Ruleset
+------------------------
+
+Beyond simply enabling or disabling services, there are a few options for customizing rulesets further. There are a number of files that are included during compilation. To get an understanding of how these files interact, here's an overview of *fwkit*'s config structure.
+
+```
+/etc/fwkit/
+    role.active -> roles/file-server
+    roles/
+        file-server/
+            description
+            policy.rules
+            services.local/
+            services.remote/
+        ...
+    rules.d/
+        pre/
+            0default.rules
+        post/
+    services/
+        local/
+           ...
+        remote/
+           ...
+```
+
+### policy.rules
+
+This file is included before all others during the compilation process and is intented to configure chain policies. For example, you may want to set the `INPUT` and `OUTPUT` chain policies to `DROP`.
+
+```
+# policy.rules - set default policy to drop
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP
+```
+
+### rules.d
+
+This directory contains two sub-directories: `pre` and `post. Files in the `pre` sub-directory are included before service rules, while files in the `post` sub-directory are included after the service rules. Files in either of these sub-directories must be suffixed with `.rules` in order to be included.
+
+```
+# rules.d/pre/0default.rules
+# stateful traffic
+iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# loopback traffic
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
+
+# icmp traffic
+iptables -A INPUT -p icmp -j ACCEPT
+iptables -A OUTPUT -p icmp -j ACCEPT
+```
+
+### .service
+
+Service definitions - those that appear when running `fwkit service list` - are defined in `services/local` and `services/remote` respectively. `services/local` contains rules for locally available services, while `services/remote` contains rules for remotely available services. Service definitions *should* contain a comment at the top of the file with information regarding the server. This information is used when listing the services.
+
+```
+# fwkit - local/dns.service - Domain Name Service; 53/tcp, 53/udp
+iptables -A INPUT -p tcp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p udp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
+```
+
+When a service is enabled, it is symlinked into the active role's `services.local` or `services.remote` sub-directory.
+
+```
+# ls /etc/fwkit/role.active/services.local
+lrwxrwxrwx 1 root root 35 Jul 20 18:01 dns.service -> ../../../services/local/dns.service
+lrwxrwxrwx 1 root root 40 Jul 20 18:01 kerberos.service -> ../../../services/local/kerberos.service
+lrwxrwxrwx 1 root root 39 Jul 20 18:01 kpasswd.service -> ../../../services/local/kpasswd.service
+lrwxrwxrwx 1 root root 36 Jul 20 18:01 ldap.service -> ../../../services/local/ldap.service
+lrwxrwxrwx 1 root root 37 Jul 20 18:01 ldaps.service -> ../../../services/local/ldaps.service
+lrwxrwxrwx 1 root root 36 Jul 20 18:01 msgc.service -> ../../../services/local/msgc.service
+lrwxrwxrwx 1 root root 40 Jul 20 18:01 msgc-ssl.service -> ../../../services/local/msgc-ssl.service
+lrwxrwxrwx 1 root root 37 Jul 20 18:01 msrpc.service -> ../../../services/local/msrpc.service
+lrwxrwxrwx 1 root root 35 Jul 20 18:01 ntp.service -> ../../../services/local/ntp.service
+lrwxrwxrwx 1 root root 37 Jul 20 18:01 rpcls.service -> ../../../services/local/rpcls.service
+lrwxrwxrwx 1 root root 35 Jul 21 11:42 smb.service -> ../../../services/local/smb.service
+lrwxrwxrwx 1 root root 36 Jul 20 18:01 smtp.service -> ../../../services/local/smtp.service
+lrwxrwxrwx 1 root root 35 Jul 20 18:37 ssh.service -> ../../../services/local/ssh.service
 ```
