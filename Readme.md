@@ -106,7 +106,7 @@ Load the ruleset.
 
 ```
 # fwkit ruleset load
-comiled rules into /var/lib/fwkit/compiled.rules
+compiled rules into /var/lib/fwkit/compiled.rules
 loading compiled rules...done
 ```
 
@@ -124,8 +124,14 @@ Unloading the rules caches the ruleset (and all counter data). Loading the rules
 loading cached rules...done
 ```
 
-If services are enabled or disable, or the role changes, you'll want to clear the cached rules and reload the rulset.
+If services are enabled or disable, or the role changes, you'll want to clear the cached rules (`clean`) and reload the rulset.
 
 ```
-# fwkit rules clean && fwkit rules load
+# fwkit rules unload && fwkit rules clean && fwkit rules load
+```
+
+Or do a `reload`, which does the above, just in one simple command.
+
+```
+# fwkit rules reload
 ```
