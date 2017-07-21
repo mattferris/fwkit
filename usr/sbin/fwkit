@@ -128,7 +128,7 @@ case $mode in
                 echo
                 echo "    clean   Clear the cached ruleset"
                 echo "    compile Compile the rules but don't load them"
-                echo "    load    Load the ruleset (compile if cached rules aren't available"
+                echo "    load    Load the ruleset (compile if cached rules aren't available)"
                 echo "    unload  Cached the loaded ruleset and unload it"
                 echo
                 exit 1
