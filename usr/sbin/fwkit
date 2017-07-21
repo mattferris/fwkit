@@ -108,6 +108,10 @@ case $mode in
                 fi
                 ;;
 
+            reload)
+                $0 unload && $0 clean && $0 load
+                ;;
+
             unload)
                 /sbin/iptables-save > "$libdir/cached.rules"
 
@@ -133,6 +137,7 @@ case $mode in
                 echo "    clean   Clear the cached ruleset"
                 echo "    compile Compile the rules but don't load them"
                 echo "    load    Load the ruleset (compile if cached rules aren't available)"
+                echo "    reload  Unload, clean, and load the ruleset"
                 echo "    unload  Cached the loaded ruleset and unload it"
                 echo
                 exit 1
