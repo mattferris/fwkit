@@ -124,8 +124,8 @@ Unloading the rules caches the ruleset (and all counter data). Loading the rules
 loading cached rules...done
 ```
 
-If services are enabled or disable, or the role changes, you'll want to clear the cached rules.
+If services are enabled or disable, or the role changes, you'll want to clear the cached rules and reload the rulset.
 
 ```
-# fwkit rules clean
+# fwkit rules clean && fwkit rules load
 ```
