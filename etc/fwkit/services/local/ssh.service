@@ -1,2 +1,2 @@
-# fwkit - local/ssh.service
+# fwkit - local/ssh.service - Secure Shell Server; 22/tcp
 iptables -A INPUT -p tcp --dport 22 -m conntrack --ctstate NEW -j ACCEPT

@@ -1,4 +1,4 @@
-# fwkit - local/ftp.service
+# fwkit - local/ftp.service - File Transfer Protocol; 20/tcp, 21/tcp, 1024-65535/tcp
 modprobe nf_conntrack_ftp
 
 # control connections

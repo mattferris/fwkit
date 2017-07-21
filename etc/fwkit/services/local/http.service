@@ -1,2 +1,2 @@
-# fwkit - local/http.service
+# fwkit - local/http.service - Hypertext Transfer Protocol; 80/tcp
 iptables -A INPUT -p tcp --dport 80 -m conntrack --ctstate NEW -j ACCEPT

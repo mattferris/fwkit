@@ -1,2 +1,2 @@
-# fwkit - local/smtp.service
+# fwkit - local/smtp.service - Simple Message Transfer Protocol; 25/tcp
 iptables -A INPUT -p tcp --dport 25 -m conntrack --ctstate NEW -j ACCEPT

@@ -1,2 +1,2 @@
-# fwkit - remote/ldaps.service
+# fwkit - remote/ldaps.service - Lightweight Directory Access Protocol over TLS; 636/tcp
 iptables -A OUTPUT -p tcp --dport 636 -m conntrack --ctstate NEW -j ACCEPT

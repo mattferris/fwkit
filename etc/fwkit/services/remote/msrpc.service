@@ -1,4 +1,4 @@
-# fwkit - remote/msrpc.service - Dynamic RPC Ports
+# fwkit - remote/msrpc.service - Microsoft RPC Dynamic Ports; 1024-1300/tcp, 49152-65535/tcp
 
 # prior to samba 4.7
 iptables -A OUTPUT -p tcp --dport 1024:1300 -m conntrack --ctstate NEW -j ACCEPT

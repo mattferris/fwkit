@@ -1,2 +1,2 @@
-# fwkit - remote/rpcls.service - End Point Mapper (DCE/RPC Locator Service)
+# fwkit - remote/rpcls.service - Microsoft End Point Mapper (DCE/RPC Locator Service); 135/tcp
 iptables -A OUTPUT -p tcp --dport 135 -m conntrack --ctstate NEW -j ACCEPT

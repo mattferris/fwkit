@@ -336,28 +336,48 @@ case $mode in
 
             list)
 
-                echo
-                echo "Local services"
+                printf '\n%s\n' 'LOCAL SERVICES'
+                printf '%-7s%-15s%s\n\n' Active Name Description
 
                 for i in $( ls -1 "$etcdir/services/local" ); do
                     if [ -h "$etcdir/role.active/services.local/$i" ]; then
-                        echo -n "  * "
+                        printf '%7s' '* '
                     else
-                        echo -n "    "
+                        echo -n "       "
                     fi
-                    echo $i | sed s/.service//
+
+                    short=$( echo -n $i | sed s/.service// )
+                    printf '%-15s' "$short"
+
+                    desc=$( head -n1 "$etcdir/services/local/$i" | awk -F' - ' '{print $3}' )
+
+                    if [ ! -z "$desc" ]; then
+                        echo -n "$desc"
+                    fi
+
+                    echo
                 done
 
-                echo
-                echo "Remote services"
+                printf '\n%s\n' 'REMOTE SERVICES'
+                printf '%-7s%-15s%s\n\n' Active Name Description
 
                 for i in $( ls -1 "$etcdir/services/remote" ); do
                     if [ -h "$etcdir/role.active/services.remote/$i" ]; then
-                        echo -n "  * "
+                        printf '%7s' '* '
                     else
-                        echo -n "    "
+                        echo -n "       "
                     fi
-                    echo $i | sed s/.service//
+
+                    short=$( echo -n $i | sed s/.service// )
+                    printf '%-15s' "$short"
+
+                    desc=$( head -n1 "$etcdir/services/remote/$i" | awk -F' - ' '{print $3}' )
+
+                    if [ ! -z "$desc" ]; then
+                        echo -n "$desc"
+                    fi
+
+                    echo
                 done
 
                 echo

@@ -1,3 +1,3 @@
-# fwkit - local/kerberos.service
+# fwkit - local/kerberos.service - Kerberos v5; 88/tcp. 88/udp
 iptables -A INPUT -p tcp --dport 88 -m conntrack --ctstate NEW -j ACCEPT
 iptables -A INPUT -p udp --dport 88 -m conntrack --ctstate NEW -j ACCEPT

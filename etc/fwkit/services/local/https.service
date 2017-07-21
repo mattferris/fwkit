@@ -1,2 +1,2 @@
-# fwkit - local/https.service
+# fwkit - local/https.service - Hypertext Transfer Protocol over TLS; 443/tcp
 iptables -A INPUT -p tcp --dport 443 -m conntrack --ctstate NEW -j ACCEPT
