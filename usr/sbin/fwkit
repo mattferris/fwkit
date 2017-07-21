@@ -89,7 +89,7 @@ case $mode in
                     rm "$libdir/cached.rules"
                 fi
 
-                echo "comiled rules into $libdir/compiled.rules"
+                echo "compiled rules into $libdir/compiled.rules"
                 ;;
 
             load)
