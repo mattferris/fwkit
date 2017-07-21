@@ -1,5 +1,7 @@
 #!/bin/sh
 
+myname=$( basename $0 )
+
 etcdir=/etc/fwkit
 libdir=/var/lib/fwkit
 
@@ -124,7 +126,7 @@ case $mode in
 
             *)
                 echo
-                echo "usage: $0 rules { action }"
+                echo "usage: $myname rules { action }"
                 echo
                 echo "Available actions:"
                 echo
@@ -195,7 +197,7 @@ case $mode in
 
             *)
                 echo
-                echo "usage: $0 role { action }"
+                echo "usage: $myname role { action }"
                 echo
                 echo "Available actions:"
                 echo
@@ -350,7 +352,7 @@ case $mode in
 
             *)
                 echo
-                echo "usage: $0 service { action }"
+                echo "usage: $myname service { action }"
                 echo
                 echo "Available actions:"
                 echo
@@ -365,7 +367,7 @@ case $mode in
         ;;
 
     *)
-        echo "usage: $0 { role | rules | service }"
+        echo "usage: $myname { role | rules | service }"
         exit 1
         ;;
 
