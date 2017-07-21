@@ -25,7 +25,9 @@ case $mode in
         case $action in
 
             clean)
-                rm "$libdir/*" > /dev/null 2>&1
+                for i in $( "$libdir" ); do
+                    rm "$libdir/$i"
+                done
 	        ;;
 
             compile)
