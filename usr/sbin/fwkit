@@ -109,7 +109,7 @@ case $mode in
                 ;;
 
             reload)
-                $0 unload && $0 clean && $0 load
+                $0 rules unload && $0 rules clean && $0 rules load
                 ;;
 
             unload)
