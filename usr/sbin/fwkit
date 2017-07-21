@@ -189,6 +189,10 @@ case $mode in
 
                 ln -s "roles/$newrole" "$etcdir/role.active"
 
+                if [ -z "$role" ]; then
+                    role="(none)"
+                fi
+
                 echo "role changed: $role -> $newrole"
                 ;;
 
