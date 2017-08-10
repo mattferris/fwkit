@@ -53,8 +53,8 @@ case $mode in
                 fi
 
                 if [ -d "$etcdir/rules.d/pre" ]; then
-                    for i in $( ls -1 "$etcdir/rules.d/pre" ); do
-                        cat "$etcdir/rules.d/pre/$i" >> "$libdir/compiled.tmp"
+                    for i in $( find "$etcdir/rules.d/pre" -name "*.rules" ); do
+                        cat "$i" >> "$libdir/compiled.tmp"
                     done
                 fi
 
@@ -73,8 +73,8 @@ case $mode in
                 fi
 
                 if [ -d "$etcdir/rules.d/post" ]; then
-                    for i in $( ls -1 "$etcdir/rules.d/post" ); do
-                        cat "$etcdir/rules.d/post/$i" >> "$libdir/compiled.tmp"
+                    for i in $( find "$etcdir/rules.d/post" -name "*.rules" ); do
+                        cat "$i" >> "$libdir/compiled.tmp"
                     done
                 fi
 
