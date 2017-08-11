@@ -2,3 +2,11 @@
 
 iptables -P INPUT DROP
 iptables -P OUTPUT DROP
+
+# restrict ipv6 to localhost and ICMP only
+ip6tables -P INPUT DROP
+ip6tables -P OUTPUT DROP
+ip6tables -A INPUT -i lo -j ACCEPT
+ip6tables -A OUTPUT -o lo -j ACCEPT
+ip6tables -A INPUT -p icmp -j ACCEPT
+ip6tables -A OUTPUT -p icmp -j ACCEPT

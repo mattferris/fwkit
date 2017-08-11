@@ -47,34 +47,44 @@ case $mode in
                     exit 1
                 fi
 
+                # include role policy if it exists
                 policy="$etcdir/role.active/policy.rules"
                 if [ -f "$policy" ]; then
+                    echo "#\n# $policy\n#\n" >> $libdir/compiled.tmp
                     cat "$policy" >> "$libdir/compiled.tmp"
                 fi
 
+                # include pre-service rules
                 if [ -d "$etcdir/rules.d/pre" ]; then
-                    for i in $( ls -1 "$etcdir/rules.d/pre" ); do
-                        cat "$etcdir/rules.d/pre/$i" >> "$libdir/compiled.tmp"
+                    for i in $( find "$etcdir/rules.d/pre" -name "*.rules" ); do
+                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
+                        cat "$i" >> "$libdir/compiled.tmp"
                     done
                 fi
 
+                # include local service rules
                 locsrv="$etcdir/role.active/services.local"
                 if [ -d "$locsrv" ]; then
-                    for i in $( ls -1 "$locsrv" ); do
-                        cat "$locsrv/$i" >> "$libdir/compiled.tmp"
+                    for i in $( find "$locsrv" -name "*.service" ); do
+                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
+                        cat "$i" >> "$libdir/compiled.tmp"
                     done
                 fi
 
+                # include remote service rules
                 rmtsrv="$etcdir/role.active/services.remote"
                 if [ -d "$rmtsrv" ]; then
-                    for i in $( ls -1 "$rmtsrv" ); do
-                        cat "$rmtsrv/$i" >> "$libdir/compiled.tmp"
+                    for i in $( find "$rmtsrv" -name "*.service" ); do
+                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
+                        cat "$i" >> "$libdir/compiled.tmp"
                     done
                 fi
 
+                # include post-service rules
                 if [ -d "$etcdir/rules.d/post" ]; then
-                    for i in $( ls -1 "$etcdir/rules.d/post" ); do
-                        cat "$etcdir/rules.d/post/$i" >> "$libdir/compiled.tmp"
+                    for i in $( find "$etcdir/rules.d/post" -name "*.rules" ); do
+                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
+                        cat "$i" >> "$libdir/compiled.tmp"
                     done
                 fi
 

@@ -1,0 +1,3 @@
+# fwkit - rules.d/post/99log-dropped.rules
+iptables -A INPUT -j LOG
+iptables -A OUTPUT -j LOG

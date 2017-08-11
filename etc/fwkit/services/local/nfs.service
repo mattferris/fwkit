@@ -1,0 +1,5 @@
+# fwkit - local/nfs.service - Network File Service; 2049/tcp, 2049/udp, 1024:65535/tcp, 1024:65535/udp
+iptables -A INPUT -p tcp --dport 2049 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p udp --dport 2049 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p tcp --dport 1024:65535 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p udp --dport 1024:65535 -m conntrack --ctstate NEW -j ACCEPT
