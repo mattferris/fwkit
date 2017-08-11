@@ -1,0 +1,2 @@
+# fwkit - local/wake-on-lan.service - Wake on LAN; 9/udp
+iptables -A OUTPUT -p udp --dport 9 -j ACCEPT

@@ -1,0 +1,2 @@
+# fwkit - local/atrt.service - All the Right Type; 3738/tcp
+iptables -A INPUT -p tcp --dport 3738 -m conntrack --ctstate -j ACCEPT

@@ -1,0 +1,3 @@
+# fwkit - local/rpcbind.service - RPC Bind Service; 111/tcp, 111/udp
+iptables -A INPUT -p tcp --dport 111 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A INPUT -p udp --dport 111 -m conntrack --ctstate NEW -j ACCEPT
