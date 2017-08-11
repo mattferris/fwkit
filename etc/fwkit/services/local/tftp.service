@@ -1,3 +1,4 @@
 # fwkit - local/tftp.service - Trivial File Transfer Protocol; 69/udp
 modprobe nf_conntrack_tftp
 iptables -A INPUT -p udp --dport 69 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A OUTPUT -p udp --dport 1024:65535 -m conntrack --ctstate NEW -j ACCEPT
