@@ -154,7 +154,7 @@ iptables -P OUTPUT DROP
 
 ### rules.d
 
-This directory contains two sub-directories: `pre` and `post. Files in the `pre` sub-directory are included before service rules, while files in the `post` sub-directory are included after the service rules. Files in either of these sub-directories must be suffixed with `.rules` in order to be included.
+This directory contains two sub-directories: `pre` and `post`. Files in the `pre` sub-directory are included before service rules, while files in the `post` sub-directory are included after the service rules. Files in either of these sub-directories must be suffixed with `.rules` in order to be included.
 
 ```
 # rules.d/pre/0default.rules
