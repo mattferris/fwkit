@@ -1,0 +1,6 @@
+# fwkit - rules.d/post/99log-dropped.rules
+
+if [ "$opt_log_dropped" = "yes" ]; then
+    iptables -A INPUT -j LOG
+    iptables -A OUTPUT -j LOG
+fi
