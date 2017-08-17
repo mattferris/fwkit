@@ -526,7 +526,7 @@ case $mode in
         ;;
 
     *)
-        echo "usage: $myname { role | rules | service }"
+        echo "usage: $myname { config | role[s] | rules | service[s] }"
         exit 1
         ;;
 
