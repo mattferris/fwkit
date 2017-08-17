@@ -147,7 +147,7 @@ case $mode in
                                 eval "export if_${if}_addr=\"$addr\""
                             done
 
-                            env -i $(confenv vars) $core_interpreter "$libdir/compiled.rules"
+                            env -i FWKIT_ETCDIR=$etcdir FWKIT_LIBDIR=$libdir fwkit=$0 $(confenv vars) $core_interpreter "$libdir/compiled.rules"
                         }
                     )
 
