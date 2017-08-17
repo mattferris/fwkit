@@ -199,3 +199,67 @@ lrwxrwxrwx 1 root root 35 Jul 21 11:42 smb.service -> ../../../services/local/sm
 lrwxrwxrwx 1 root root 36 Jul 20 18:01 smtp.service -> ../../../services/local/smtp.service
 lrwxrwxrwx 1 root root 35 Jul 20 18:37 ssh.service -> ../../../services/local/ssh.service
 ```
+
+Configuration
+-------------
+
+Configuration values are set/unset/viewed using the `fwkit config` command and come in two flavours: core configuration options, and ruleset variables. You can view the full list of configured values like so:
+
+```
+# fwkit config get
+core.interpreter = /bin/sh
+vars.opt_log_dropped = no
+```
+
+The above values are defined by default. `core.interpreter` controls the command used to parse the compiled ruleset. `vars.opt_log_dropped` defines the variable `opt_log_dropped` for use within the ruleset and is ultimately used to determine if logging rules should be added for dropped packets.
+
+```
+# fwkit - rules.d/post/99log-dropped.rules
+
+if [ "$opt_log_dropped" = "yes" ]; then
+    iptables -A INPUT -j LOG
+    iptables -A OUTPUT -j LOG
+fi
+
+```
+
+To set a configuration value, use `fwkit config set`.
+
+```
+# fwkit config set vars.foo bar
+# fwkit config get
+core.interpreter = /bin/sh
+vars.opt_log_dropped = no
+vars.foo = bar
+```
+
+To remove a configuration value, use `fwkit config unset`
+
+```
+# fwkit config unset vars.foo
+# fwkit config get
+core.interpreter = /bin/sh
+vars.opt_log_dropped = no
+```
+
+### Runtime Variables
+
+fwkit provides some runtime variables for use within your ruleset. These variables provide easy access to each network interface's address and network address. These variables take the format `if_<ifname>_addr` and `if_<ifname>_net` and can be used within a ruleset to provide some more dynamic rules.
+
+```
+iptables -A INPUT -p icmp -s $if_eth0_net -j ACCEPT
+iptables -A OUTPUT -p icmp -d $if_eth0_net -j ACCEPT
+```
+
+Runtime variables can also be referenced in config values for further abstracton.
+
+```
+# fwkit config set vars.lan_net \$if_eth0_net
+```
+
+The above ICMP rules can now be written in an interface agnostic way, making them more portable across hosts.
+
+```
+iptables -A INPUT -p icmp -s $lan_net -j ACCEPT
+iptables -A OUTPUT -p icmp -d $lan_net -j ACCEPT
+```
