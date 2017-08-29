@@ -16,6 +16,27 @@ if [ ! -z "$FWKIT_LIBDIR" ]; then
     libdir=$FWKIT_LIBDIR
 fi
 
+confload() {
+    type=$1
+    prefix=$2
+    for i in $(find "$etcdir/conf/$type" -type f); do
+        name=$(basename $i)
+        eval "export $prefix$name=\"$(cat $i)\""
+    done
+}
+
+confenv() {
+    type=$1
+    prefix=$2
+    for i in $(find "$etcdir/conf/$type" -type f); do
+        name=$(basename $i)
+        value=$(eval echo $(cat $i))
+        echo -n "$prefix$name=$value "
+    done
+}
+
+confload core core_
+
 case $mode in
 
     rules)
@@ -112,8 +133,24 @@ case $mode in
                     if [ ! -f "$libdir/compiled.rules" ]; then
                         $0 rules compile
                     fi
+
                     echo -n "loading compiled rules..."
-                    $( /bin/sh "$libdir/compiled.rules" )
+
+                    (
+                        # get interface values
+                        ip -4 -o addr | grep inet | {
+                            while read def; do
+                                if=$(echo $def | cut -d' ' -f2)
+                                net=$(echo $def | awk '{print $4}')
+                                addr=$(echo $net | cut -d/ -f1)
+                                eval "export if_${if}_net=\"$net\""
+                                eval "export if_${if}_addr=\"$addr\""
+                            done
+
+                            env -i FWKIT_ETCDIR=$etcdir FWKIT_LIBDIR=$libdir fwkit=$0 $(confenv vars) $core_interpreter "$libdir/compiled.rules"
+                        }
+                    )
+
                     echo "done"
                 fi
                 ;;
@@ -156,7 +193,7 @@ case $mode in
         esac
         ;;
 
-    role)
+    role|roles)
 
         #
         # all actions related to role mode
@@ -235,7 +272,7 @@ case $mode in
         esac
         ;;
 
-    service)
+    service|services)
 
         #
         # All actions related to service mode
@@ -410,8 +447,86 @@ case $mode in
 
         ;;
 
+    config)
+
+        #
+        # Actions related to config mode
+        #
+
+        case $action in
+
+            set)
+                name=$3
+                value=$4
+
+                if [ -z "$name" ]; then
+                    echo "error: config setting must be specified"
+                    exit 1
+                fi
+
+                if [ -z "$value" ]; then
+                    echo "error: config value must be specified"
+                    exit 1
+                fi
+
+                path=$(echo $name | tr . /)
+                type=$(echo $name | cut -d. -f1)
+
+                if [ -z "$(echo $type | grep -e 'vars' -e 'core')" ]; then
+                    echo "error: setting prefix must be 'core' or 'vars'"
+                    exit 1
+                fi
+
+                mkdir -p "$etcdir/conf/$(dirname $path)"
+                echo "$value" > "$etcdir/conf/$path"
+                ;;
+
+            get)
+                name=$3
+
+                if [ -z "$name" ]; then
+                    (
+                        cd "$etcdir/conf"
+                        for f in $(find . -type f); do
+                            path=$(echo $f | cut -b3-)
+                            echo $(echo $path | tr / .) = $(cat $f)
+                        done
+                    )
+                elif [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
+                    echo "error: setting doesn't exist '$name'"
+                    exit 1
+                else
+                    cat "$etcdir/conf/$(echo $name | tr . /)"
+                fi
+                ;;
+
+            unset)
+                name=$3
+
+                if [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
+                    echo "error: setting doesn't exist '$name'"
+                    exit 1
+                fi
+
+                rm "$etcdir/conf/$(echo $name | tr . /)"
+                ;;
+
+            *)
+                echo
+                echo "usage: $myname config { action }"
+                echo
+                echo "    get    Get the value of a specific setting, or all settings"
+                echo "    set    Set the value of a setting"
+                echo "    unset  Delete a setting"
+                echo
+                exit 1
+                ;;
+
+        esac
+        ;;
+
     *)
-        echo "usage: $myname { role | rules | service }"
+        echo "usage: $myname { config | role[s] | rules | service[s] }"
         exit 1
         ;;
 
