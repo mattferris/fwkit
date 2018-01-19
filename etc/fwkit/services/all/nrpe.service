@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - nrpe.service - Nagios NRPE Agent; 5666/tcp
+
+services:
+  nrpe:
+    description: Nagios NRPE Agent
+    transports:
+      - 
+        protocol: tcp
+        listen_port: 5666

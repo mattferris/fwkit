@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - http.service - Hypertext Transfer Protocol; 80/tcp
+
+services:
+  http:
+    description: HTTP (HyperText Transfer Protocol)
+    transports:
+      -
+        protocol: tcp
+        listen_port: 80

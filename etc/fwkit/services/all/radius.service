@@ -1,0 +1,13 @@
+#!/usr/sbin/fwksrv
+# fwkit - radius.service - RADIUS Authentication; 1812/tcp, 1812/udp
+
+services:
+  raduis:
+    description: RADIUS Authentication
+    transports: 
+      -
+        protocol: tcp
+        listen_port: 1812
+      - 
+        protocol: udp
+        listen_port: 1812

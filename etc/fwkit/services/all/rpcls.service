@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - rpcls.service - Microsoft End Point Mapper (DCE/RPC Locator Service); 135/tcp
+
+services:
+  rpcls:
+    description: Microsoft End Point Mapper (DCE/RPC Locator Service)
+    transports:
+      -
+        protocol: tcp
+        listen_port: 135

@@ -1,3 +1,0 @@
-# fwkit - local/kpasswd.service - Kerberos v5 kpasswd; 464/tcp, 464/udp
-iptables -A INPUT -p tcp --dport 464 -m conntrack --ctstate NEW -j ACCEPT
-iptables -A INPUT -p udp --dport 464 -m conntrack --ctstate NEW -j ACCEPT

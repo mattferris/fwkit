@@ -1,0 +1,13 @@
+#!/usr/sbin/fwksrv
+# fwkit - cups.service - CUPS (IPP); 631/tcp, 631/udp
+
+services:
+  cups:
+    description: CUPS Printing Server
+    transports:
+      -
+        protocol: tcp
+        listen_port: 631
+      -
+        protocol: udp
+        listen_port: 631

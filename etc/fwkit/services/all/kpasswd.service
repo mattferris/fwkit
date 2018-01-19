@@ -1,0 +1,13 @@
+#!/usr/sbin/fwksrv
+# fwkit - kpasswd.service - Kerberos v5 kpasswd; 464/tcp, 464/udp
+
+services:
+  kpasswd:
+    description: Kerberos v5 kpasswd Service
+    transports:
+      -
+        protocol: tcp
+        listen_port: 464
+      -
+        protocol: udp
+        listen_port: 464

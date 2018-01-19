@@ -1,2 +1,0 @@
-# fwkit - remote/ssh.service - Secure Shell Server; 22/tcp
-iptables -A OUTPUT -p tcp --dport 22 -m conntrack --ctstate NEW -j ACCEPT

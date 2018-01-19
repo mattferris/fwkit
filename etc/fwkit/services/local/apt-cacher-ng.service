@@ -1,2 +1,0 @@
-# fwkit - local/apt-cacher-ng.service - APT Cacher NG; 3142/tcp
-iptables -A INPUT -p tcp --dport 3142 -m conntrack --ctstate NEW -j ACCEPT

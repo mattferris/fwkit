@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - ldaps.service - Lightweight Directory Access Protocol over TLS; 636/tcp
+
+services:
+  ldaps:
+    description: Lightweight Directory Access Protocol over TLS
+    transports:
+      -
+        protocol: tcp
+        listen_port: 636
