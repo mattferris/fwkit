@@ -1,2 +1,0 @@
-# fwkit - remote/smb.service - Server Message Block (SMB); 445/tcp
-iptables -A OUTPUT -p tcp --dport 445 -m conntrack --ctstate NEW -j ACCEPT

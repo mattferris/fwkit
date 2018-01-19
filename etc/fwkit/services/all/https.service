@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - https.service - Hypertext Transfer Protocol over TLS; 443/tcp
+
+services:
+  https:
+    description: HTTPS (HyperText Transfer Protocol over SSL/TLS)
+    transports:
+      -
+        protocol: tcp
+        listen_port: 443

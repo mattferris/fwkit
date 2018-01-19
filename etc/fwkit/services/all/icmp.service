@@ -1,0 +1,13 @@
+#!/usr/sbin/fwksrv
+# fwkit - icmp.service - Internet Control Message Protocol; icmp/ipv6-icmp
+
+services:
+  icmp:
+    description: ICMP (Internet Control Message Protocol)
+    transports:
+      -
+        family: inet
+        protocol: icmp
+      -
+        family: inet6
+        protocol: ipv6-icmp

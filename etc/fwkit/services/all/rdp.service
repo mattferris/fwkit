@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - rdp.service - Remote Desktop Protocol; 3389/tcp
+
+services:
+  rdp:
+    description: RDP (Remote Desktop Protocol)
+    transports:
+      -
+        protocol: tcp
+        listen_port: 3389

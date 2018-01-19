@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - atrt.service - All the Right Type; 3738/tcp
+
+services:
+  atrt:
+    description: All the Right Type
+    transports:
+      -
+        protocol: tcp
+        listen_port: 3728

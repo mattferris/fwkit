@@ -1,2 +1,0 @@
-# fwkit - remote/ntp.service - Network Time Protocol; 123/udp
-iptables -A OUTPUT -p udp --dport 123 -m conntrack --ctstate NEW -j ACCEPT

@@ -1,0 +1,24 @@
+#!/usr/sbin/fwksrv
+# fwkit - ftp.service - File Transfer Protocol; 20/tcp, 21/tcp, 1024-65535/tcp
+
+services:
+  ftp:
+    description: FTP (File Transfer Protocol)
+    modprobe: nf_conntrack_ftp
+    transports:
+      -
+        description: control connections
+        protocol: tcp
+        listen_port: 21
+        states: new established
+      -
+        description: active data connections
+        protocol: tcp
+        listen_port: 20
+        state: established,related
+      -
+        description: passive data connections
+        protocol: tcp
+        listen_port: 1024:65535
+        source_port: 1024:65535
+        states: established,related

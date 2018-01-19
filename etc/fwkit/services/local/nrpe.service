@@ -1,2 +1,0 @@
-# fwkit - local/nrpe.service - Nagios NRPE Agent; 5666/tcp
-iptables -A INPUT -p tcp --dport 5666 -m conntrack --ctstate NEW -j ACCEPT

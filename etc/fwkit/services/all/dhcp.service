@@ -1,0 +1,13 @@
+#!/usr/sbin/fwksrv
+# fwkit - dhcp.service - Dynamic Host Configuration Protocol; 67/udp, 68/udp
+
+services:
+  dhcp:
+    description: DHCP (Dynamic Host Configuration Protocol)
+    transports:
+      -
+        protocol: udp
+        listen_port: 67
+      - 
+        protocol: udp
+        listen_port: 68

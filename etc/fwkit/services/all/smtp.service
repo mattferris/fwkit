@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - smtp.service - Simple Message Transfer Protocol; 25/tcp
+
+services:
+  smtp:
+    description: SMTP (Simple Message Transfer Protocol)
+    transports:
+      -
+        protocol: tcp
+        listen_port: 25

@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - wake-on-lan.service - Wake on LAN; 9/udp
+
+services:
+  wake_on_lan:
+    description: WoL (Wake on LAN)
+    transports:
+      -
+        protocol: udp
+        listen_port: 9

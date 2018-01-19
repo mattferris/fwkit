@@ -1,0 +1,10 @@
+#!/usr/sbin/fwksrv
+# fwkit - ssh.service - Secure Shell Server; 22/tcp
+
+services:
+  ssh:
+    description: SSH (Secure Shell Protocol)
+    transports:
+      -
+        protocol: tcp
+        listen_port: 22

@@ -1,2 +1,0 @@
-# fwkit - remote/http.service - Hypertext Transfer Protocol; 80/tcp
-iptables -A OUTPUT -p tcp --dport 80 -m conntrack --ctstate NEW -j ACCEPT

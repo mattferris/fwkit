@@ -35,6 +35,15 @@ confenv() {
     done
 }
 
+doerror() {
+    echo "error: $2" 1>&2
+    exit $1
+}
+
+donotice() {
+    echo "notice: $1" 1>&2
+}
+
 confload core core_
 
 case $mode in
@@ -59,13 +68,11 @@ case $mode in
                 fi
 
                 if [ ! -d "$etcdir" ]; then
-                    echo "error: config directory $etcdir doesn't exist or isn't a directory"
-                    exit 1
+                    doerror 1 "config directory $etcdir doesn't exist or isn't a directory"
                 fi
 
                 if [ ! -e "$etcdir/role.active" ]; then
-                    echo "error: no role specified"
-                    exit 1
+                    doerror 1 "no role specified"
                 fi
 
                 # include role policy if it exists
@@ -84,22 +91,34 @@ case $mode in
                 fi
 
                 # include local service rules
-                locsrv="$etcdir/role.active/services.local"
-                if [ -d "$locsrv" ]; then
-                    for i in $( find "$locsrv" -name "*.service" ); do
-                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
-                        cat "$i" >> "$libdir/compiled.tmp"
-                    done
-                fi
+                for zone in $( ls -1 "$etcdir/role.active/zones" ); do
+                    locsrv="$etcdir/role.active/zones/$zone/services/local"
+                    if [ -d "$locsrv" ]; then
+                        for i in $( find "$locsrv" -name "*.service" ); do
+                            echo "\n#\n# $i\n#\n" >> "$libdir/compiled.tmp"
+                            if [ -x "$i" ]; then
+                                "$i" $zone local >> "$libdir/compiled.tmp"
+                            else
+                                cat "$i" >> "$libdir/compiled.tmp"
+                            fi
+                        done
+                    fi
+                done
 
                 # include remote service rules
-                rmtsrv="$etcdir/role.active/services.remote"
-                if [ -d "$rmtsrv" ]; then
-                    for i in $( find "$rmtsrv" -name "*.service" ); do
-                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
-                        cat "$i" >> "$libdir/compiled.tmp"
-                    done
-                fi
+                for zone in $( ls -1 "$etcdir/role.active/zones" ); do
+                    rmtsrv="$etcdir/role.active/zones/$zone/services/remote"
+                    if [ -d "$rmtsrv" ]; then
+                        for i in $( find "$rmtsrv" -name "*.service" ); do
+                            echo "\n#\n# $i\n#\n" >> "$libdir/compiled.tmp"
+                            if [ -x "$i" ]; then
+                                "$i" $zone remote >> "$libdir/compiled.tmp"
+                            else
+                                cat "$i" >> "$libdir/compiled.tmp"
+                            fi
+                        done
+                    fi
+                done
 
                 # include post-service rules
                 if [ -d "$etcdir/rules.d/post" ]; then
@@ -110,8 +129,7 @@ case $mode in
                 fi
 
                 if [ ! -f "$libdir/compiled.tmp" ]; then
-                    echo "notice: no rules found!"
-                    exit
+                    donotice "no rules found!"
                 fi
 
                 mv "$libdir/compiled.tmp" "$libdir/compiled.rules"
@@ -208,8 +226,7 @@ case $mode in
 
             list)
                 if [ ! -d "$etcdir/roles" ]; then
-                    echo "error: roles directory $etcdir/roles doesn't exist"
-                    exit 1
+                    doerror 1 "roles directory $etcdir/roles doesn't exist"
                 fi
 
                 for i in $( ls -1 "$etcdir/roles"); do
@@ -226,13 +243,11 @@ case $mode in
             set)
                 newrole=$3
                 if [ -z "$newrole" ]; then
-                    echo "error: no new role specified"
-                    exit 1
+                    doerror 1 "no new role specified"
                 fi
 
                 if [ ! -d "$etcdir/roles/$newrole" ]; then
-                    echo "error: new role $newrole doesn't exist"
-                    exit 1
+                    doerror 1 "new role $newrole doesn't exist"
                 fi
 
                 if [ -h "$etcdir/role.active" ]; then
@@ -250,8 +265,7 @@ case $mode in
 
             get)
                 if [ -z "$role" ]; then
-                    echo "error: no active role specified"
-                    exit 1
+                    doerror 1 "no active role specified"
                 fi
                 echo "$role"
                 ;;
@@ -262,9 +276,9 @@ case $mode in
                 echo
                 echo "Available actions:"
                 echo
-                echo "    get     Get the current role"
-                echo "    list    List available roles"
-                echo "    set     Set the current role"
+                echo "    get       Get the current role"
+                echo "    list      List available roles"
+                echo "    set       Set the current role"
                 echo
                 exit 1
                 ;;
@@ -288,13 +302,11 @@ case $mode in
                 shift; shift
 
                 if [ ! "$type" = "local" -a ! "$type" = "remote" ]; then
-                    echo "error: invalid service type $type, must be 'local' or 'remote'"
-                    exit 1
+                    doerror 1 "invalid service type $type, must be 'local' or 'remote'"
                 fi
 
                 if [ -z "$service" ]; then
-                    echo "error: no service specified"
-                    exit 1
+                    doerror "no service specified"
                 fi
 
                 services=""
@@ -305,23 +317,26 @@ case $mode in
                     fi
 
                     service=$1
+                    zone="default"
+
+                    if [ ! -z "$(echo $service | grep -e '.:.')" ]; then
+                        zone=$(echo $service | cut -d: -f1)
+                        service=$(echo $service | cut -d: -f2)
+                    fi
 
                     if [ ! -f "$etcdir/services/$type/$service.service" ]; then
-                        echo "error: $type service $service doesn't exist"
-                        exit 1
+                        doerror 1 "$type service $service doesn't exist"
                     fi
 
-                    if [ ! -d "$etcdir/role.active/services.$type" ]; then
-                        echo "error: directory $etcdir/role.active/services.$type doesn't exist"
-                        exit 1
+                    if [ ! -d "$etcdir/role.active/zones/$zone/services/$type" ]; then
+                        doerror 1 "directory $etcdir/role.active/zones/$zone/services/$type doesn't exist"
                     fi
 
-                    if [ ! -h "$etcdir/role.active/services.$type/$service.service" ]; then
-                        echo "$type service $service already disabled"
-                        exit
+                    if [ ! -h "$etcdir/role.active/zones/$zone/services/$type/$service.service" ]; then
+                        doerror 1 "$type service $service already disabled for zone $zone"
                     fi
 
-                    rm "$etcdir/role.active/services.$type/$service.service"
+                    rm "$etcdir/role.active/zones/$zone/services/$type/$service.service"
                     services="$services $service"
 
                 done
@@ -338,13 +353,11 @@ case $mode in
                 shift; shift
 
                 if [ ! "$type" = "local" -a ! "$type" = "remote" ]; then
-                    echo "error: invalid service type $type, must be 'local' or 'remote'"
-                    exit 1
+                    doerror 1 "invalid service type $type, must be 'local' or 'remote'"
                 fi
 
                 if [ -z "$service" ]; then
-                    echo "error: no service specified"
-                    exit 1
+                    doerror 1 "no service specified"
                 fi
 
                 services=""
@@ -355,23 +368,26 @@ case $mode in
                     fi
 
                     service=$1
+                    zone="default"
+
+                    if [ ! -z "$(echo $service | grep -e '.:.')" ]; then
+                        zone=$(echo $service | cut -d: -f1)
+                        service=$(echo $service | cut -d: -f2)
+                    fi
 
                     if [ ! -f "$etcdir/services/$type/$service.service" ]; then
-                        echo "error: $type service $service doesn't exist"
-                        exit 1
+                        doerror 1 "$type service $service doesn't exist"
                     fi
 
-                    if [ ! -d "$etcdir/role.active/services.$type" ]; then
-                        echo "error: directory $etcdir/role.active/services.$type doesn't exist"
-                        exit 1
+                    if [ ! -d "$etcdir/role.active/zones/$zone/services/$type" ]; then
+                        doerror 1 "directory $etcdir/role.active/zones/$zone/services/$type doesn't exist"
                     fi
 
-                    if [ -h "$etcdir/role.active/services.$type/$service.service" ]; then
-                        echo "$type service $service already enabled"
-                        exit
+                    if [ -h "$etcdir/role.active/zones/$zone/services/$type/$service.service" ]; then
+                        doerror 1 "$type service $service already enabled for zone $zone"
                     fi
 
-                    ln -s "../../../services/$type/$service.service" "$etcdir/role.active/services.$type"
+                    ln -s "$etcdir/services/$type/$service.service" "$etcdir/role.active/zones/$zone/services/$type"
 
                     services="$services $service"
 
@@ -383,11 +399,23 @@ case $mode in
 
             list)
 
+                zone=$3
+
+                if [ -z "$zone" ]; then
+                    zone="default"
+                fi
+
+                if [ ! -d "$etcdir/role.active/zones/$zone" ]; then
+                    doerror 1 "zone not defined '$zone'"
+                fi
+
+                printf '\n%s\n' "ZONE $zone"
+
                 printf '\n%s\n' 'LOCAL SERVICES'
                 printf '%-7s%-15s%s\n\n' Active Name Description
 
-                for i in $( ls -1 "$etcdir/services/local" ); do
-                    if [ -h "$etcdir/role.active/services.local/$i" ]; then
+                for i in $( find "$etcdir/services/local/" -type f -printf "%P\n" | sort ); do
+                    if [ -h "$etcdir/role.active/zones/$zone/services/local/$i" ]; then
                         printf '%7s' '* '
                     else
                         echo -n "       "
@@ -396,7 +424,11 @@ case $mode in
                     short=$( echo -n $i | sed s/.service// )
                     printf '%-15s' "$short"
 
-                    desc=$( head -n1 "$etcdir/services/local/$i" | awk -F' - ' '{print $3}' )
+                    if [ -x "$etcdir/services/local/$i" ]; then
+                        desc=$( head -n2 "$etcdir/services/local/$i" | tail -n1 | awk -F' - ' '{print $3}' )
+                    else
+                        desc=$( head -n1 "$etcdir/services/local/$i" | awk -F' - ' '{print $3}' )
+                    fi
 
                     if [ ! -z "$desc" ]; then
                         echo -n "$desc"
@@ -408,8 +440,8 @@ case $mode in
                 printf '\n%s\n' 'REMOTE SERVICES'
                 printf '%-7s%-15s%s\n\n' Active Name Description
 
-                for i in $( ls -1 "$etcdir/services/remote" ); do
-                    if [ -h "$etcdir/role.active/services.remote/$i" ]; then
+                for i in $( find "$etcdir/services/remote/" -type f -printf "%P\n" | sort ); do
+                    if [ -h "$etcdir/role.active/zones/$zone/services/remote/$i" ]; then
                         printf '%7s' '* '
                     else
                         echo -n "       "
@@ -418,7 +450,11 @@ case $mode in
                     short=$( echo -n $i | sed s/.service// )
                     printf '%-15s' "$short"
 
-                    desc=$( head -n1 "$etcdir/services/remote/$i" | awk -F' - ' '{print $3}' )
+                    if [ -x "$etcdir/services/local/$i" ]; then
+                        desc=$( head -n2 "$etcdir/services/local/$i" | tail -n1 | awk -F' - ' '{print $3}' )
+                    else
+                        desc=$( head -n1 "$etcdir/services/local/$i" | awk -F' - ' '{print $3}' )
+                    fi
 
                     if [ ! -z "$desc" ]; then
                         echo -n "$desc"
@@ -460,21 +496,18 @@ case $mode in
                 value=$4
 
                 if [ -z "$name" ]; then
-                    echo "error: config setting must be specified"
-                    exit 1
+                    doerror 1 "config setting must be specified"
                 fi
 
                 if [ -z "$value" ]; then
-                    echo "error: config value must be specified"
-                    exit 1
+                    doerror 1 "config value must be specified"
                 fi
 
                 path=$(echo $name | tr . /)
                 type=$(echo $name | cut -d. -f1)
 
                 if [ -z "$(echo $type | grep -e 'vars' -e 'core')" ]; then
-                    echo "error: setting prefix must be 'core' or 'vars'"
-                    exit 1
+                    doerror 1 "setting prefix must be 'core' or 'vars'"
                 fi
 
                 mkdir -p "$etcdir/conf/$(dirname $path)"
@@ -493,8 +526,7 @@ case $mode in
                         done
                     )
                 elif [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
-                    echo "error: setting doesn't exist '$name'"
-                    exit 1
+                    doerror 1 "setting doesn't exist '$name'"
                 else
                     cat "$etcdir/conf/$(echo $name | tr . /)"
                 fi
@@ -504,8 +536,7 @@ case $mode in
                 name=$3
 
                 if [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
-                    echo "error: setting doesn't exist '$name'"
-                    exit 1
+                    doerror 1 "setting doesn't exist '$name'"
                 fi
 
                 rm "$etcdir/conf/$(echo $name | tr . /)"
@@ -525,8 +556,87 @@ case $mode in
         esac
         ;;
 
+    zone|zones)
+
+        #
+        # Actions related to zones
+        #
+
+        case $action in
+
+            define)
+                zone=$3
+                defaction=$4
+                source=$5
+                desc=$6
+
+                zonedir="$etcdir/role.active/zones/$zone"
+
+                if [ -d "$zonedir" ]; then
+                    doerror 1 "zone already defined '$zone'"
+                fi
+
+                if [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ]; then
+                    doerror 1 "zone default action must be 'allow' or 'deny', '$defaction' specified"
+                fi
+
+                if [ -z "$source" ]; then
+                    doerror 1 "zone must define a source address/network"
+                fi
+
+                mkdir -p "$zonedir/services/local" "$zonedir/services/remote"
+                echo $defaction > "$zonedir/default_action"
+
+                for src in $(echo $source); do
+                    echo "$src" >> "$zonedir/sources"
+                done
+
+                if [ ! -z "$desc" ]; then
+                    echo "$desc" > "$zonedir/description"
+                fi
+                ;;
+
+            list)
+                for zone in $(ls -1 "$etcdir/role.active/zones"); do
+                    zonedir="$etcdir/role.active/zones/$zone"
+                    desc=""
+                    if [ -f "$zonedir/description" ]; then
+                        desc=$(head -n1 "$zonedir/description")
+                    fi
+                    echo -n "  "
+                    printf '%-15s' "$zone"
+                    echo $desc
+                done
+                ;;
+
+            undefine)
+                zone=$3
+                zonedir="$etcdir/role.active/zones/$zone"
+
+                if [ ! -d "$zonedir" ]; then
+                    doerror 1 "zone hasn't been defined '$zone'"
+                fi
+
+                rm -r "$zonedir"
+                ;;
+
+            *)
+                echo
+                echo "usage: $myname $mode { action }"
+                echo
+                echo "    define    Define a new zone"
+                echo "    list      Get a list of all zones for the current roll"
+                echo "    undefine  Undefine (delete) an existing zone"
+                echo
+                exit 1
+                ;;
+
+        esac
+
+        ;;
+
     *)
-        echo "usage: $myname { config | role[s] | rules | service[s] }"
+        echo "usage: $myname { config | role[s] | rules | service[s] | zone[s] }"
         exit 1
         ;;
 

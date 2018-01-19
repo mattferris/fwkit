@@ -1,2 +1,0 @@
-# fwkit - local/msgc-ssl.service - Microsoft Global Catalog over TLS (Active Directory); 3269/tcp
-iptables -A INPUT -p tcp --dport 3269 -m conntrack --ctstate NEW -j ACCEPT
