@@ -90,9 +90,48 @@ case $mode in
                     done
                 fi
 
-                # include local service rules
+                # process zones
                 for zone in $( ls -1 "$etcdir/role.active/zones" ); do
-                    locsrv="$etcdir/role.active/zones/$zone/services/local"
+                    zonedir="$etcdir/role.active/zones/$zone"
+
+                    defaction="deny"
+                    if [ -f "$zonedir/default_action" ]; then
+                        defaction=$(cat $zonedir/default_action)
+                    fi
+
+                    echo "iptables -N $zone" >> "$libdir/compiled.tmp"
+                    echo "ip6tables -N $zone" >> "$libdir/compiled.tmp"
+
+                    if [ "allow" = "$defaction" ]; then
+                        echo "iptables -P $zone ACCEPT"
+                        echo "ip6tables -P $zone ACCEPT"
+                    else
+                        echo "iptables -P $zone DROP" >> "$libdir/compiled.tmp"
+                        echo "ip6tables -P $zone DROP" >> "$libdir/compiled.tmp"
+                    fi
+
+                    if [ ! -f "$zonedir/sources" ]; then
+                        doerror 1 "no sources defined for zone '$zone'"
+                    fi
+
+                    {
+                    while read i; do
+                        cmd=""
+                        if [ -z "$i" ]; then
+                            continue;
+                        fi
+                        if [ -z $(echo $i | grep -e ':') ]; then
+                            cmd="iptables"
+                        else
+                            cmd="ip6tables"
+                        fi
+
+                        echo "$cmd -s $i -j $zone" >> "$libdir/compiled.tmp"
+                    done
+                    } < "$zonedir/sources"
+
+                    # include local service rules
+                    locsrv="$zonedir/services/local"
                     if [ -d "$locsrv" ]; then
                         for i in $( find "$locsrv" -name "*.service" ); do
                             echo "\n#\n# $i\n#\n" >> "$libdir/compiled.tmp"
@@ -103,11 +142,9 @@ case $mode in
                             fi
                         done
                     fi
-                done
 
-                # include remote service rules
-                for zone in $( ls -1 "$etcdir/role.active/zones" ); do
-                    rmtsrv="$etcdir/role.active/zones/$zone/services/remote"
+                    # include remote service rules
+                    rmtsrv="$zonedir/services/remote"
                     if [ -d "$rmtsrv" ]; then
                         for i in $( find "$rmtsrv" -name "*.service" ); do
                             echo "\n#\n# $i\n#\n" >> "$libdir/compiled.tmp"
