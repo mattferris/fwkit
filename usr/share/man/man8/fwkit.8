@@ -12,6 +12,12 @@ fwkit \- Firewall Kit for modular firewalls
 .br
 \fBfwkit role set \fIrole\fR
 .br
+.fBfwkit role\fR { \fBdefine\fR | \fBundefine\fR } \fIrole\fR [ \fIdescription\fR ]
+.br
+\fBfwkit zone\fR { \fBdefine | \fBundefine\fR } \fIzone source\R [ \FIdescription\fR ]
+.br
+\fBfwkit zone list\fR
+.br
 \fBfwkit config get\fR [ \fIvar\fR ]
 .br
 \fBfwkit config set \fIvar value\fR
@@ -68,6 +74,26 @@ List the available roles. The active role is marked with an asterisk.
 .TP .4i
 \fBset \fIrole\fR
 Set the active role to \fIrole\fR.
+.TP .4i
+.B define
+Define a new role \fIrole\fR, with optional description \fIdescription\fR.
+.TP .4i
+.B undefine
+Undefine (delete) an existing role \fIrole\fR.
+.RE
+.TP
+\fBzone\fR|\fBzones\fR
+Zone management.
+.RS
+.TP .4i
+.B define
+Define a new zone \fIzone\fR for the currently enabled role, from network or host address \fIsource\fR, with optional description \fIdescription\fR.
+.TP .4i
+.B undefine
+Undefine an existing zone \fIzone\fR for the currently enabled role.
+.TP .4i
+.B list
+List the zones for the currently enabled role.
 .RE
 .TP
 \fBconfig\fR
@@ -84,6 +110,14 @@ Set the value of configuration variable \fIvar\fR to \fIvalue\fR.
 \fBunset \fIvar\fR
 Unset the configuration variable \fIvar\fR.
 .RE
+.SH ZONE MANAGEMENT
+Roles are created with a single zone called "default". Additional zones can be defined for a role to segment traffic from differnet networks and/or interfaces, allowing services to be enabled or disabled independently for these segments. For example:
+.P
+.in +7
+fwkit zone define lan 192.168.0.0/24
+fwkit services enable local lan:ssh lan:smb lan:dhcp
+.P
+When services are enabled or disable for a zone other then the "default" zone, they must be prepended with the zone name followed by a colon ":".
 .SH SIMPLE PORT FOWARDING
 fwkit provides a convenient shorcut for defining port forwarding configurations. \fBvars\fR-class variables beginning with \fBdnat_\fR are treated by the ruleset as port-forwarding definitions and the appropriate rules are generated to execute the definition. A port forwarding definition is as follows:
 .P
