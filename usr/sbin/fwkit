@@ -224,6 +224,27 @@ case $mode in
 
         case $action in
 
+            define)
+                role=$3
+                desc=$4
+
+                if [ -z "$role" ]; then
+                    doerror 1 "no role specified"
+                fi
+
+                if [ -d "$etcdir/roles/$role" ]; then
+                    doerror 1 "role already exists '$role'"
+                fi
+
+                mkdir -p "$etcdir/roles/$role/zones/default/services/local" "$etcdir/roles/$role/zones/default/services/remote"
+                echo "0.0.0.0/0" > "$etcdir/roles/$role/zones/default/sources"
+                echo "allow" > "$etcdir/roles/$role/zones/default/default_action"
+                echo "$desc" > "$etcdir/roles/$role/description"
+
+                echo "#\n# Policy rules for role '$role'\n#\n" > "$etcdir/roles/$role/policy.rules"
+                exec "${EDITOR:-/usr/bin/vi}" "$etcdir/roles/$role/policy.rules"
+                ;;
+
             list)
                 if [ ! -d "$etcdir/roles" ]; then
                     doerror 1 "roles directory $etcdir/roles doesn't exist"
@@ -270,15 +291,31 @@ case $mode in
                 echo "$role"
                 ;;
 
+            undefine)
+                role=$3
+
+                if [ -z "$role" ]; then
+                    doerror 1 "no role specified"
+                fi
+
+                if [ ! -d "$etcdir/roles/$role" ]; then
+                    doerror 1 "role hasn't been defined '$role'"
+                fi
+
+                rm -r "$etcdir/roles/$role"
+                ;;
+
             *)
                 echo
                 echo "usage: $myname role { action }"
                 echo
                 echo "Available actions:"
                 echo
+                echo "    define    Define a new role"
                 echo "    get       Get the current role"
                 echo "    list      List available roles"
                 echo "    set       Set the current role"
+                echo "    undefine  Undefine (delete) an existing role"
                 echo
                 exit 1
                 ;;
