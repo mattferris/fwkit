@@ -1,4 +1,0 @@
-# fwkit - chain policies for file-server role
-
-iptables -P INPUT DROP
-iptables -P OUTPUT DROP
