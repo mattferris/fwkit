@@ -201,10 +201,10 @@ lrwxrwxrwx 1 root root 36 Jul 20 18:01 smtp.service -> /etc/fwkit/role.active/zo
 lrwxrwxrwx 1 root root 35 Jul 20 18:37 ssh.service -> /etc/fwkit/role.active/zones/default/services/local/ssh.service
 ```
 
-If service definition files have the execute bit set, then fwkit attempts to run the definition as a script. The script is passed two arguments: the zone the service is being enabled for, and the location of the service (*local* or *remote*). The script's output is captured and is included in the compiled rule data. fwkit includes an utility that called `fwsrvgen` which is used to allow for YAML service definitions. A service definition using a YAML format looks like:
+If service definition files have the execute bit set, then fwkit attempts to run the definition as a script. The script is passed two arguments: the zone the service is being enabled for, and the location of the service (*local* or *remote*). The script's output is captured and is included in the compiled rule data. fwkit includes an utility that called `fwksrv` which is used to allow for YAML service definitions. A service definition using a YAML format looks like:
 
 ```yaml
-#!/usr/sbin/fwsrvgen
+#!/usr/sbin/fwksrv
 # fwkit - local/dns.service - Domain Name Service; 53/tcp, 53/udp
 
 services:
