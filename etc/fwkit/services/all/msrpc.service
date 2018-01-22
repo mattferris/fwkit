@@ -4,12 +4,14 @@
 services:
   msrpc:
     description: Microsoft RPC Dynamic Ports
-    transports:
+    connections:
       -
         description: ports prior to samba 4.7
         protocol: tcp
         listen_port: 49152:65525
+        states: new
       -
         description: ports for samba 4.7+
         protocol: tcp
         listen_port: 1024:1300
+        states: new

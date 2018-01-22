@@ -5,17 +5,17 @@ services:
   ftp:
     description: FTP (File Transfer Protocol)
     modprobe: nf_conntrack_ftp
-    transports:
+    connections:
       -
         description: control connections
         protocol: tcp
         listen_port: 21
-        states: new established
+        states: new,established
       -
         description: active data connections
         protocol: tcp
         listen_port: 20
-        state: established,related
+        states: established,related
       -
         description: passive data connections
         protocol: tcp

@@ -57,8 +57,8 @@ sub newservice {
         error("service \"$service\" has already been defined in zone \"$service\"");
     }
 
-    unless (defined($def->{'transports'}) && length($def->{'transports'}) > 0) {
-        error("service \"$service\" must define at least one transport");
+    unless (defined($def->{'connections'}) && length($def->{'connections'}) > 0) {
+        error("service \"$service\" must define at least one connection");
     }
 
     my $action = 'DROP';
@@ -82,7 +82,7 @@ sub newservice {
         print "modprobe '".$def->{'modprobe'}."'\n";
     }
 
-    foreach my $trpt (@{$def->{'transports'}}) {
+    foreach my $trpt (@{$def->{'connections'}}) {
         my $out = [];
 
         if (defined($trpt->{'protocol'})) {

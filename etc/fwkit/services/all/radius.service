@@ -4,10 +4,12 @@
 services:
   raduis:
     description: RADIUS Authentication
-    transports: 
+    connections:
       -
         protocol: tcp
         listen_port: 1812
+        states: new
       - 
         protocol: udp
         listen_port: 1812
+        states: new

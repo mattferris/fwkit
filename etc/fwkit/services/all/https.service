@@ -4,7 +4,8 @@
 services:
   https:
     description: HTTPS (HyperText Transfer Protocol over SSL/TLS)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 443
+        states: new

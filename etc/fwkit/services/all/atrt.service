@@ -4,7 +4,8 @@
 services:
   atrt:
     description: All the Right Type
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 3728
+        states: new

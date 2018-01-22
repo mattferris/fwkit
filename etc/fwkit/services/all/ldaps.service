@@ -4,7 +4,8 @@
 services:
   ldaps:
     description: Lightweight Directory Access Protocol over TLS
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 636
+        states: new

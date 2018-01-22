@@ -4,10 +4,12 @@
 services:
   cups:
     description: CUPS Printing Server
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 631
+        states: new
       -
         protocol: udp
         listen_port: 631
+        states: new

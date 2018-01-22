@@ -4,10 +4,12 @@
 services:
   kerberos:
     description: Kerberos v5
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 88
+        states: new
       -
         protocol: udp
         listen_port: 88
+        states: new

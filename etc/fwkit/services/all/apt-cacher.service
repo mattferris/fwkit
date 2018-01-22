@@ -4,7 +4,8 @@
 services:
   apt_cacher:
     description: APT Cache
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 3142
+        states: new

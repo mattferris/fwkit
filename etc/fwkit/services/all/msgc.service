@@ -4,7 +4,8 @@
 services:
   msgc:
     description: Microsoft Global Catalog (Active Directory)
-    transports:
+    connections:
       -
         protocol: 3268
         listen_port: 3268
+        states: new

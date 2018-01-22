@@ -4,7 +4,8 @@
 services:
   wake_on_lan:
     description: WoL (Wake on LAN)
-    transports:
+    connections:
       -
         protocol: udp
         listen_port: 9
+        states: new

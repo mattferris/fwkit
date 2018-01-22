@@ -4,7 +4,8 @@
 services:
   rpcls:
     description: Microsoft End Point Mapper (DCE/RPC Locator Service)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 135
+        states: new

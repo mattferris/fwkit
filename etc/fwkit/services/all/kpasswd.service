@@ -4,10 +4,12 @@
 services:
   kpasswd:
     description: Kerberos v5 kpasswd Service
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 464
+        states: new
       -
         protocol: udp
         listen_port: 464
+        states: new

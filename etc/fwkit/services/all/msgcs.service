@@ -4,7 +4,8 @@
 services:
   msgcs:
     description: Microsoft Global Catalog over TLS (Active Directory)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 3269
+        states: new

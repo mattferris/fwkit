@@ -4,7 +4,8 @@
 services:
   ssh:
     description: SSH (Secure Shell Protocol)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 22
+        states: new

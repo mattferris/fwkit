@@ -4,10 +4,12 @@
 services:
   dns:
     description: DNS (Domain Name Service)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 53
+        states: new
       -
         protocol: udp
         listen_port: 53
+        states: new

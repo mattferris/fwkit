@@ -4,7 +4,8 @@
 services:
   smtp:
     description: SMTP (Simple Message Transfer Protocol)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 25
+        states: new

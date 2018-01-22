@@ -4,7 +4,8 @@
 services:
   rdp:
     description: RDP (Remote Desktop Protocol)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 3389
+        states: new

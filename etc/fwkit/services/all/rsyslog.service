@@ -4,7 +4,8 @@
 services:
   rsyslog:
     descriptions: Remote Syslog
-    transports:
+    connections:
       -
         protocol: udp
         listen_port: 514
+        states: new

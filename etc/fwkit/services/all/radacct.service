@@ -4,10 +4,12 @@
 services:
   radacct:
     description: RADIUS Accounting
-    transports:
+    connections:
       - 
         protocol: tcp
         listen_port: 1813
+        states: new
       - 
         protocol: udp
         listen_port: 1813
+        states: new

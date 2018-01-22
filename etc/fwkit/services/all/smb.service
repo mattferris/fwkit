@@ -4,7 +4,8 @@
 services:
   smb:
     description: SMB (Service Message Block)
-    transports:
+    connections:
       -
         protocol: tcp
         listen_port: 445
+        states: new
