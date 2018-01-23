@@ -14,9 +14,13 @@ fwkit \- Firewall Kit for modular firewalls
 .br
 .fBfwkit role\fR { \fBdefine\fR | \fBundefine\fR } \fIrole\fR [ \fIdescription\fR ]
 .br
-\fBfwkit zone\fR { \fBdefine | \fBundefine\fR } \fIzone source\R [ \FIdescription\fR ]
+\fBfwkit zone\fR { \fBdefine\fR | \fBundefine\fR } \fIzone source\R [ \FIdescription\fR ]
 .br
 \fBfwkit zone list\fR
+.br
+\fBfwkit acl\fR { \fBadd\fR | \fBdelete\fR } \fIzone\fR { \fBlocal\fR | \fBremote\fR } \fIservice action source\fR
+.br
+\fBfwkit acl\fR { \fBclear\fR | \fBedit\fR | \fBlist\fR } { \fBlocal\fR | \fBremote\fR } \fIservice\fR
 .br
 \fBfwkit config get\fR [ \fIvar\fR ]
 .br
@@ -96,20 +100,37 @@ Undefine an existing zone \fIzone\fR for the currently enabled role.
 List the zones for the currently enabled role.
 .RE
 .TP
-\fBconfig\fR
+.B config
 Configuration management. Configuration variables consist of two classes: \fBcore\fR and \fBvars\fR. \fBcore\fR variables are used internally by fwkit to modify it's behaviour. \fBvars\fR are made available to the ruleset and are used to allow for more dynamic configuration. \fIvar\fR refers to the full variable name, i.e.
 \fIclass\fR.\fIname\fR. The \fIname\fR portion can only contain numbers, letters, and underscores.  Examples of variable names are: \fBcore.interpreter\fR, \fBvars.foo_bar\fR, \fBvars.funkyChicken\fR.
 .RS
 .TP .4i
-\fBget\fR [ \fIvar\fR ]
+\fBget \fI[ \fIvar\fR ]
 Get the value of configuration variable \fIvar\fR.
 .TP .4i
-\fBset\fR \fIvar\fR \fIvalue\fR
+\fBset \fIvar\fR \fIvalue\fR
 Set the value of configuration variable \fIvar\fR to \fIvalue\fR.
 .TP .4i
 \fBunset \fIvar\fR
 Unset the configuration variable \fIvar\fR.
 .RE
+.TP
+\fBacl\fR|\fBacls\fR
+ACL management.
+.RS
+.TP .4i
+\fBadd \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice action source \fR[ \fIdescription\fR ]
+Add an ACL for host/network address \fIsource\fR for \fIservice\fR in zone \fIzone\fR.
+.TP .4i
+\fBclear \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
+Clear all ACL entries for service \fIservice\fR in zone \fIzone\fR.
+\fBdelete \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice action source\fR
+Delete an ACL \fIaction\fR \fIsource\fR for service \fIservice\fR in zone \fIzone\fR.
+\fBedit \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
+Launch an editor to manually edit the ACL entries for \fIservice\fR in zone \fIzone\fR.
+\fBlist \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
+List the ACL entries for \fIservice\fR in zone \fIzone\fR.
+.TP .4i
 .SH ZONE MANAGEMENT
 Roles are created with a single zone called "default". Additional zones can be defined for a role to segment traffic from differnet networks and/or interfaces, allowing services to be enabled or disabled independently for these segments. For example:
 .P
@@ -118,6 +139,8 @@ fwkit zone define lan 192.168.0.0/24
 fwkit services enable local lan:ssh lan:smb lan:dhcp
 .P
 When services are enabled or disable for a zone other then the "default" zone, they must be prepended with the zone name followed by a colon ":".
+.P
+Zone definitions are loaded in the the order that \fBls(1)\fR produces, except that the "default" zone (if it exists) is always loaded last. Custom zone ordering is possible by adding the zones (one per line) to \fI/etc/fwkit/role.active/zoneorder\fR. Once \fIzoneorder\fR is defined, only the zones listed in that file are loaded.
 .SH SIMPLE PORT FOWARDING
 fwkit provides a convenient shorcut for defining port forwarding configurations. \fBvars\fR-class variables beginning with \fBdnat_\fR are treated by the ruleset as port-forwarding definitions and the appropriate rules are generated to execute the definition. A port forwarding definition is as follows:
 .P

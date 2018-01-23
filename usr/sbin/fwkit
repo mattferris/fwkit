@@ -51,7 +51,7 @@ doservice() {
     servfile="$etcdir/role.active/zones/$zone/services/$location/$service.service"
     echo "\n#\n# $i\n#\n"
     if [ -x "$servfile" ]; then
-        "$servfile" $zone local
+        "$servfile" $zone $location
     else
         cat "$servfile"
     fi
@@ -63,7 +63,7 @@ doacl() {
     location=$2
     service=$3
     aclfile="$etcdir/role.active/zones/$zone/services/$location/$service.service.acl"
-    chain=$(echo "fwk_${zone}_$(echo $location | cut -b1)_${service}" | cut -b1-30)
+    chain=$(chainname $zone $location $service)
     if [ -f "$aclfile" ]; then
         { while read line; do
             action=$(echo $line | cut -d\  -f1)
@@ -103,6 +103,16 @@ servenabled() {
     # is service enabled
     servfile="$zonedir/services/$location/$service.service"
     [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
+}
+
+chainname() {
+    zone=$1
+    location=$2
+    service=$3
+    chain="fwk_$zone"
+    [ ! -z "$location" ] && chain="${chain}_$(echo $location | cut -b1)"
+    [ ! -z "$service" ] && chain="${chain}_${service}"
+    echo $chain
 }
 
 confload core core_
@@ -151,23 +161,32 @@ case $mode in
                 fi
 
                 # process zones
-                for zone in $( ls -1 "$etcdir/role.active/zones" ); do
+                zonelist="$(ls -1 "$etcdir/role.active/zones" | grep -v default) default"
+                if [ -f "$etcdir/role.active/zoneorder" ]; then
+                    zonelist=$(cat "$etcdir/role.active/zoneorder")
+                fi
+                for zone in $zonelist; do
                     zonedir="$etcdir/role.active/zones/$zone"
+
+                    if [ ! -d "$zonedir" ]; then
+                        continue;
+                    fi
 
                     defaction="deny"
                     if [ -f "$zonedir/default_action" ]; then
                         defaction=$(cat $zonedir/default_action)
                     fi
 
-                    echo "iptables -N $zone" >> "$libdir/compiled.tmp"
-                    echo "ip6tables -N $zone" >> "$libdir/compiled.tmp"
+                    zcn=$(chainname $zone)
+                    echo "iptables -N $zcn" >> "$libdir/compiled.tmp"
+                    echo "ip6tables -N $zcn" >> "$libdir/compiled.tmp"
 
                     if [ "allow" = "$defaction" ]; then
-                        echo "iptables -P $zone ACCEPT" >> "$libdir/compiled.tmp"
-                        echo "ip6tables -P $zone ACCEPT" >> "$libdir/compiled.tmp"
+                        echo "iptables -P $zcn ACCEPT" >> "$libdir/compiled.tmp"
+                        echo "ip6tables -P $zcn ACCEPT" >> "$libdir/compiled.tmp"
                     else
-                        echo "iptables -P $zone DROP" >> "$libdir/compiled.tmp"
-                        echo "ip6tables -P $zone DROP" >> "$libdir/compiled.tmp"
+                        echo "iptables -P $zcn DROP" >> "$libdir/compiled.tmp"
+                        echo "ip6tables -P $zcn DROP" >> "$libdir/compiled.tmp"
                     fi
 
                     if [ ! -f "$zonedir/sources" ]; then
@@ -184,7 +203,7 @@ case $mode in
                         else
                             cmd="ip6tables"
                         fi
-                        echo "$cmd -s $i -j $zone" >> "$libdir/compiled.tmp"
+                        echo "$cmd -A INPUT -s $i -j $zcn" >> "$libdir/compiled.tmp"
                     done } < "$zonedir/sources"
 
                     # include local service rules
@@ -951,6 +970,7 @@ case $mode in
                 echo "    add     Add an acl for a service"
                 echo "    clear   Clear acl for a service"
                 echo "    delete  Delete an acl for a servive"
+                echo "    edit    Launch an editor to manually edit ACL entires for a service"
                 echo "    list    List acls for a service"
                 echo
                 exit 1
