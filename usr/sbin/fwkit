@@ -275,6 +275,16 @@ case $mode in
                 iptables -F -t security
                 iptables -X
 
+                ip6tables -P INPUT ACCEPT
+                ip6tables -P OUTPUT ACCEPT
+                ip6tables -P FORWARD ACCEPT
+                ip6tables -F -t filter
+                ip6tables -F -t nat
+                ip6tables -F -t mangle
+                ip6tables -F -t raw
+                ip6tables -F -t security
+                ip6tables -X
+
                 echo "rules unloaded"
                 ;;
 
@@ -830,7 +840,7 @@ case $mode in
 
                 if [ -z "$source" ]; then
                     echo
-                    echo "usage: $myname $mode $action add <zone> { local | remote } <service> { allow | deny } <source> [ <description> ]"
+                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source> [ <description> ]"
                     echo
                     echo "    zone     The zone the service is enable for"
                     echo "    service  The service to apply the ACL to"
