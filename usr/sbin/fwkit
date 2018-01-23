@@ -65,32 +65,44 @@ doacl() {
     aclfile="$etcdir/role.active/zones/$zone/services/$location/$service.service.acl"
     chain=$(echo "fwk_${zone}_$(echo $location | cut -b1)_${service}" | cut -b1-30)
     if [ -f "$aclfile" ]; then
-        {
-        while read line; do
+        { while read line; do
             action=$(echo $line | cut -d\  -f1)
             source=$(echo $line | cut -d\  -f2)
+            cmt=$(echo $line | cut -d\  -f3-)
             negated=""
             if [ ! -z $(echo $source | grep -e '^!') ]; then
                 negated="'!'"
                 source=$(echo $source | cut -b2-)
             fi
-            if [ "allow" = "$action" ]; then
-                action="ACCEPT"
-            else
-                action="DROP"
-            fi
-            if [ -z $(echo $source | grep ':') ]; then
-                cmd="iptables"
-            else
-                cmd="ip6tables"
-            fi
-            echo "$cmd -A $chain $negated -s $source -j $action"
-        done
-        } < "$aclfile"
+            target="DROP"
+            cmd="iptables"
+            [ "allow" = "$action" ] && target="ACCEPT"
+            [ ! -z $(echo $source | grep ':') ] && cmd="ip6tables"
+            [ ! -z "$cmt" ] && cmt='-m comment --comment "$cmt"'
+            echo "$cmd -A $chain $negated -s $source -j $target"
+        done } < "$aclfile"
     else
         echo "iptables -A $chain -s 0.0.0.0/0 -j ACCEPT"
         echo "ip6tables -A $chain -s ::0/0 -j ACCEPT"
     fi
+}
+
+servenabled() {
+    zone=$1
+    location=$2
+    service=$3
+
+    # does zone exist
+    zonedir="$etcdir/role.active/zones/$zone"
+    [ ! -d "$zonedir" ] && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
+
+    # is location valid
+    [ ! "$location" = "local" -a ! "$location" = "remote" ] \
+        && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
+
+    # is service enabled
+    servfile="$zonedir/services/$location/$service.service"
+    [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
 }
 
 confload core core_
@@ -102,7 +114,6 @@ case $mode in
         #
         # All actions related to rules mode
         #
-
         case $action in
 
             clean)
@@ -152,8 +163,8 @@ case $mode in
                     echo "ip6tables -N $zone" >> "$libdir/compiled.tmp"
 
                     if [ "allow" = "$defaction" ]; then
-                        echo "iptables -P $zone ACCEPT"
-                        echo "ip6tables -P $zone ACCEPT"
+                        echo "iptables -P $zone ACCEPT" >> "$libdir/compiled.tmp"
+                        echo "ip6tables -P $zone ACCEPT" >> "$libdir/compiled.tmp"
                     else
                         echo "iptables -P $zone DROP" >> "$libdir/compiled.tmp"
                         echo "ip6tables -P $zone DROP" >> "$libdir/compiled.tmp"
@@ -163,8 +174,7 @@ case $mode in
                         doerror 1 "no sources defined for zone '$zone'"
                     fi
 
-                    {
-                    while read i; do
+                    { while read i; do
                         cmd=""
                         if [ -z "$i" ]; then
                             continue;
@@ -174,10 +184,8 @@ case $mode in
                         else
                             cmd="ip6tables"
                         fi
-
                         echo "$cmd -s $i -j $zone" >> "$libdir/compiled.tmp"
-                    done
-                    } < "$zonedir/sources"
+                    done } < "$zonedir/sources"
 
                     # include local service rules
                     locsrv="$zonedir/services/local"
@@ -220,7 +228,6 @@ case $mode in
                 ;;
 
             load)
-
                 if [ -f "$libdir/cached.rules" ]; then
                     echo -n "loading cached rules..."
                     /sbin/iptables-restore < "$libdir/cached.rules"
@@ -273,9 +280,7 @@ case $mode in
 
             *)
                 echo
-                echo "usage: $myname rules { action }"
-                echo
-                echo "Available actions:"
+                echo "usage: $myname rules { clean | compile | load | reload | unload }"
                 echo
                 echo "    clean   Clear the cached ruleset"
                 echo "    compile Compile the rules but don't load them"
@@ -294,7 +299,6 @@ case $mode in
         #
         # all actions related to role mode
         #
-
         if [ -h "$etcdir/role.active" ]; then
             role=$( basename $(readlink "$etcdir/role.active") )
         fi
@@ -307,7 +311,13 @@ case $mode in
                 desc=$4
 
                 if [ -z "$role" ]; then
-                    doerror 1 "no role specified"
+                    echo
+                    echo "usage: $myname $mode $action <name> <description>"
+                    echo
+                    echo "    name         The name of the role to create"
+                    echo "    description  An optional description for the new role"
+                    echo
+                    exit 1
                 fi
 
                 if [ -d "$etcdir/roles/$role" ]; then
@@ -336,13 +346,17 @@ case $mode in
                     fi
                     echo $i
                 done
-
                 ;;
 
             set)
                 newrole=$3
                 if [ -z "$newrole" ]; then
-                    doerror 1 "no new role specified"
+                    echo
+                    echo "usage: $myname $mode $action <name>"
+                    echo
+                    echo "    name  The name of the role to promote to the active role"
+                    echo
+                    exit 1
                 fi
 
                 if [ ! -d "$etcdir/roles/$newrole" ]; then
@@ -373,7 +387,12 @@ case $mode in
                 role=$3
 
                 if [ -z "$role" ]; then
-                    doerror 1 "no role specified"
+                    echo
+                    echo "usage: $myname $mode $action <name>"
+                    echo
+                    echo "    name  The name of the role to undefine (delete)"
+                    echo
+                    exit 1
                 fi
 
                 if [ ! -d "$etcdir/roles/$role" ]; then
@@ -385,9 +404,7 @@ case $mode in
 
             *)
                 echo
-                echo "usage: $myname role { action }"
-                echo
-                echo "Available actions:"
+                echo "usage: $myname role { define | get | list | set | undefine }"
                 echo
                 echo "    define    Define a new role"
                 echo "    get       Get the current role"
@@ -406,13 +423,22 @@ case $mode in
         #
         # All actions related to service mode
         #
-
         case $action in
 
             disable)
-
                 type=$3
                 service=$4
+
+                if [ -z "$type" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <type> [<zone>:]<service> [ ... ]"
+                    echo
+                    echo "    type     The type of service, local or remote"
+                    echo "    zone     Optional zone to disable the service for (if not specified, assumes 'default' zone)"
+                    echo "    service  The service to disable"
+                    echo
+                    exit 1
+                fi
 
                 shift; shift
 
@@ -457,13 +483,22 @@ case $mode in
                 done
 
                 echo "disabled $type service(s)$services"
-
                 ;;
 
             enable)
-
                 type=$3
                 service=$4
+
+                if [ -z "$type" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <type> [<zone>:]<service> [ ... ]"
+                    echo
+                    echo "    type     The type of service, local or remote"
+                    echo "    zone     Optional zone to enable the service for (if not specified, assumes 'default' zone)"
+                    echo "    service  The service to enable"
+                    echo
+                    exit 1
+                fi
 
                 shift; shift
 
@@ -509,11 +544,9 @@ case $mode in
                 done
 
                 echo "enabled $type service(s)$services"
-
                 ;;
 
             list)
-
                 zone=$3
 
                 if [ -z "$zone" ]; then
@@ -579,14 +612,11 @@ case $mode in
                 done
 
                 echo
-
                 ;;
 
             *)
                 echo
-                echo "usage: $myname service { action }"
-                echo
-                echo "Available actions:"
+                echo "usage: $myname service { disable | enable | list }"
                 echo
                 echo "    disable Disable a service"
                 echo "    enable  Enable a service"
@@ -595,7 +625,6 @@ case $mode in
                 ;;
 
         esac
-
         ;;
 
     config)
@@ -603,7 +632,6 @@ case $mode in
         #
         # Actions related to config mode
         #
-
         case $action in
 
             set)
@@ -611,7 +639,13 @@ case $mode in
                 value=$4
 
                 if [ -z "$name" ]; then
-                    doerror 1 "config setting must be specified"
+                    echo
+                    echo "usage: $myname $mode $action <variable> <value>"
+                    echo
+                    echo "    variable  The name of the variable to set"
+                    echo "    value     The value of the variable"
+                    echo
+                    exit 1
                 fi
 
                 if [ -z "$value" ]; then
@@ -650,6 +684,15 @@ case $mode in
             unset)
                 name=$3
 
+                if [ -z "$name" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <variable>"
+                    echo
+                    echo "    variable  The name of the variable to unset"
+                    echo
+                    exit 1
+                fi
+
                 if [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
                     doerror 1 "setting doesn't exist '$name'"
                 fi
@@ -659,7 +702,7 @@ case $mode in
 
             *)
                 echo
-                echo "usage: $myname config { action }"
+                echo "usage: $myname config { get | set | unset }"
                 echo
                 echo "    get    Get the value of a specific setting, or all settings"
                 echo "    set    Set the value of a setting"
@@ -676,7 +719,6 @@ case $mode in
         #
         # Actions related to zones
         #
-
         case $action in
 
             define)
@@ -684,8 +726,19 @@ case $mode in
                 defaction=$4
                 source=$5
                 desc=$6
-
                 zonedir="$etcdir/role.active/zones/$zone"
+
+                if [ -z "$zone" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <name> <action> <source> [ <description> ]"
+                    echo
+                    echo "    name         The name of the zone to define"
+                    echo "    action       The default zone policy, allow or deny"
+                    echo "    source       The source host/network address of the zone"
+                    echo "    description  Optional description for the zone"
+                    echo
+                    exit 1
+                fi
 
                 if [ -d "$zonedir" ]; then
                     doerror 1 "zone already defined '$zone'"
@@ -728,6 +781,15 @@ case $mode in
                 zone=$3
                 zonedir="$etcdir/role.active/zones/$zone"
 
+                if [ -z "$zone" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <name>"
+                    echo
+                    echo "    name The name of the zone to undefine (delete)"
+                    echo
+                    exit 1
+                fi
+
                 if [ ! -d "$zonedir" ]; then
                     doerror 1 "zone hasn't been defined '$zone'"
                 fi
@@ -737,7 +799,7 @@ case $mode in
 
             *)
                 echo
-                echo "usage: $myname $mode { action }"
+                echo "usage: $myname $mode { define | list | undefine }"
                 echo
                 echo "    define    Define a new zone"
                 echo "    list      Get a list of all zones for the current roll"
@@ -747,7 +809,6 @@ case $mode in
                 ;;
 
         esac
-
         ;;
 
     acl|acls)
@@ -755,14 +816,15 @@ case $mode in
         #
         # Actions related to acls
         #
+        zone=$3
+        location=$4
+        service=$5
+        servfile="$etcdir/role.active/zones/$zone/services/$location/$service.service"
 
         case $action in
 
             add)
-                zone=$3
-                location=$4
-                service=$5
-                action=$6
+                defaction=$6
                 source=$7
                 description=$8
 
@@ -777,56 +839,31 @@ case $mode in
                     exit 1
                 fi
 
-                # does zone exist
-                zonedir="$etcdir/role.active/zones/$zone"
-                [ ! -d "$zonedir" ] && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
-
-                # is location valid
-                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
-                    && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
-
-                # is service enabled
-                servfile="$zonedir/services/$location/$service.service"
-                [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
+                servenabled $zone $location $service
 
                 # is action valid
-                [ ! "$action" = "allow" -a ! "$action" = "deny" ] \
-                    && doerror 1 "invalid action specified '$action', must be 'allow' or 'deny'"
+                [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ] \
+                    && doerror 1 "invalid action specified '$defaction', must be 'allow' or 'deny'"
 
-                echo "$action $source $description" >> "$servfile.acl"
+                echo "$defaction $source $description" >> "$servfile.acl"
                 ;;
 
             clear)
-                zone=$3
-                location=$4
-                service=$5
-
                 if [ -z "$service" ]; then
                     echo
                     echo "usage: $myname $mode $action <zone> { local | remote } <service>"
+                    echo
                     echo "    zone     The zone the service is enable for"
                     echo "    service  The service to apply the acl to"
                     echo
                     exit 1
                 fi
  
-                # does zone exist
-                zonedir="$etcdir/role.active/zones/$zone"
-                [ ! -d "$zonedir" ] \
-                    && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
-
-                # is location valid
-                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
-                    && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
-
-                # is service enabled
-                servfile="$zonedir/services/$location/$service.service"
-                [ ! -f "$servfile" ] \
-                    && doerror 1 "invalid $location service specified '$service', service not enabled"
+                servenabled $zone $location $service
 
                 # is action valid
-                [ ! "$action" = "allow" -a ! "$action" = "deny" ] \
-                    && doerror 1 "invalid action specified '$action', must be 'allow' or 'deny'"
+                [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ] \
+                    && doerror 1 "invalid action specified '$defaction', must be 'allow' or 'deny'"
 
                 # does service acl exist
                 [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
@@ -835,10 +872,7 @@ case $mode in
                 ;;
 
             del|delete)
-                zone=$3
-                location=$4
-                service=$5
-                action=$6
+                defaction=$6
                 source=$7
 
                 if [ -z "$source" ]; then
@@ -852,33 +886,15 @@ case $mode in
                     exit 1
                 fi
 
-                # does zone exist
-                zonedir="$etcdir/role.active/zones/$zone"
-                [ ! -d "$zonedir" ] doerror 1 "invalid zone specified '$zone', zone doesn't exist"
-
-                # is location valid
-                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
-                    && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
-
-                # is service enabled
-                servfile="$zonedir/services/$location/$service.service"
-                [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
-
-                # is location valid
-                [ ! "$action" = "allow" -a ! "$action" = "deny" ] \
-                    && doerror 1 "invalid action specified '$action', must be 'allow' or 'deny'"
+                servenabled $zone $location $service
 
                 # does service have an acl
                 [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
 
-                cat "$servfile" | grep -e "^$action $source" > "$servfile.tmp" && mv "$servfile.acl.tmp" "$servfile.acl"
+                cat "$servfile" | grep -e "^$defaction $source" > "$servfile.tmp" && mv "$servfile.acl.tmp" "$servfile.acl"
                 ;;
 
-            list)
-                zone=$3
-                location=$4
-                service=$5
-
+            edit)
                 if [ -z "$service" ]; then
                     echo
                     echo "usage: $myname $mode $action <zone> { local | remote } <service>"
@@ -889,17 +905,23 @@ case $mode in
                     exit 1
                 fi
 
-                # does zone exist
-                zonedir="$etcdir/role.active/zones/$zone"
-                [ ! -d "$zonedir" ] && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
+                servenabled $zone $location $service
 
-                # is location valid
-                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
-                    && doerror 1 "invalid location specified '$location', must be 'local' or 'remote'"
+                exec ${EDITOR:-vi} "$servfile.acl"
+                ;;
 
-                # is service enabled
-                servfile="$zonedir/services/$location/$service.service"
-                [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
+            list)
+                if [ -z "$service" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
+                    echo
+                    echo "    zone     The zone the service is enable for"
+                    echo "    service  The service to list acls for"
+                    echo
+                    exit 1
+                fi
+
+                servenabled $zone $location $service
 
                 # does service have an acl
                 [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
