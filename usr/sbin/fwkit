@@ -44,6 +44,55 @@ donotice() {
     echo "notice: $1" 1>&2
 }
 
+doservice() {
+    zone=$1
+    location=$2
+    service=$3
+    servfile="$etcdir/role.active/zones/$zone/services/$location/$service.service"
+    echo "\n#\n# $i\n#\n"
+    if [ -x "$servfile" ]; then
+        "$servfile" $zone local
+    else
+        cat "$servfile"
+    fi
+    doacl $zone $location $service
+}
+
+doacl() {
+    zone=$1
+    location=$2
+    service=$3
+    aclfile="$etcdir/role.active/zones/$zone/services/$location/$service.service.acl"
+    chain=$(echo "fwk_${zone}_$(echo $location | cut -b1)_${service}" | cut -b1-30)
+    if [ -f "$aclfile" ]; then
+        {
+        while read line; do
+            action=$(echo $line | cut -d\  -f1)
+            source=$(echo $line | cut -d\  -f2)
+            negated=""
+            if [ ! -z $(echo $source | grep -e '^!') ]; then
+                negated="'!'"
+                source=$(echo $source | cut -b2-)
+            fi
+            if [ "allow" = "$action" ]; then
+                action="ACCEPT"
+            else
+                action="DROP"
+            fi
+            if [ -z $(echo $source | grep ':') ]; then
+                cmd="iptables"
+            else
+                cmd="ip6tables"
+            fi
+            echo "$cmd -A $chain $negated -s $source -j $action"
+        done
+        } < "$aclfile"
+    else
+        echo "iptables -A $chain -s 0.0.0.0/0 -j ACCEPT"
+        echo "ip6tables -A $chain -s ::0/0 -j ACCEPT"
+    fi
+}
+
 confload core core_
 
 case $mode in
@@ -134,12 +183,8 @@ case $mode in
                     locsrv="$zonedir/services/local"
                     if [ -d "$locsrv" ]; then
                         for i in $( find "$locsrv" -name "*.service" ); do
-                            echo "\n#\n# $i\n#\n" >> "$libdir/compiled.tmp"
-                            if [ -x "$i" ]; then
-                                "$i" $zone local >> "$libdir/compiled.tmp"
-                            else
-                                cat "$i" >> "$libdir/compiled.tmp"
-                            fi
+                            servname=$( echo $(basename $i) | sed 's/.service//' )
+                            doservice $zone local $servname >> "$libdir/compiled.tmp"
                         done
                     fi
 
@@ -147,12 +192,8 @@ case $mode in
                     rmtsrv="$zonedir/services/remote"
                     if [ -d "$rmtsrv" ]; then
                         for i in $( find "$rmtsrv" -name "*.service" ); do
-                            echo "\n#\n# $i\n#\n" >> "$libdir/compiled.tmp"
-                            if [ -x "$i" ]; then
-                                "$i" $zone remote >> "$libdir/compiled.tmp"
-                            else
-                                cat "$i" >> "$libdir/compiled.tmp"
-                            fi
+                            servname=$( echo $(basename $i) | sed 's/.service//' )
+                            doservice $zone remote $servname >> "$libdir/compiled.tmp"
                         done
                     fi
                 done
@@ -709,8 +750,184 @@ case $mode in
 
         ;;
 
+    acl|acls)
+
+        #
+        # Actions related to acls
+        #
+
+        case $action in
+
+            add)
+                zone=$3
+                location=$4
+                service=$5
+                action=$6
+                source=$7
+                description=$8
+
+                if [ -z "$source" ]; then
+                    echo
+                    echo "usage: $myname $mode $action add <zone> { local | remote } <service> { allow | deny } <source> [ <description> ]"
+                    echo
+                    echo "    zone     The zone the service is enable for"
+                    echo "    service  The service to apply the ACL to"
+                    echo "    source   The host or network address"
+                    echo
+                    exit 1
+                fi
+
+                # does zone exist
+                zonedir="$etcdir/role.active/zones/$zone"
+                [ ! -d "$zonedir" ] && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
+
+                # is location valid
+                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
+                    && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
+
+                # is service enabled
+                servfile="$zonedir/services/$location/$service.service"
+                [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
+
+                # is action valid
+                [ ! "$action" = "allow" -a ! "$action" = "deny" ] \
+                    && doerror 1 "invalid action specified '$action', must be 'allow' or 'deny'"
+
+                echo "$action $source $description" >> "$servfile.acl"
+                ;;
+
+            clear)
+                zone=$3
+                location=$4
+                service=$5
+
+                if [ -z "$service" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
+                    echo "    zone     The zone the service is enable for"
+                    echo "    service  The service to apply the acl to"
+                    echo
+                    exit 1
+                fi
+ 
+                # does zone exist
+                zonedir="$etcdir/role.active/zones/$zone"
+                [ ! -d "$zonedir" ] \
+                    && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
+
+                # is location valid
+                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
+                    && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
+
+                # is service enabled
+                servfile="$zonedir/services/$location/$service.service"
+                [ ! -f "$servfile" ] \
+                    && doerror 1 "invalid $location service specified '$service', service not enabled"
+
+                # is action valid
+                [ ! "$action" = "allow" -a ! "$action" = "deny" ] \
+                    && doerror 1 "invalid action specified '$action', must be 'allow' or 'deny'"
+
+                # does service acl exist
+                [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
+
+                rm "$servfile.acl"
+                ;;
+
+            del|delete)
+                zone=$3
+                location=$4
+                service=$5
+                action=$6
+                source=$7
+
+                if [ -z "$source" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source>"
+                    echo
+                    echo "    zone     The zone the service is enable for"
+                    echo "    service  The service to apply the acl to"
+                    echo "    source   The host or network address"
+                    echo
+                    exit 1
+                fi
+
+                # does zone exist
+                zonedir="$etcdir/role.active/zones/$zone"
+                [ ! -d "$zonedir" ] doerror 1 "invalid zone specified '$zone', zone doesn't exist"
+
+                # is location valid
+                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
+                    && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
+
+                # is service enabled
+                servfile="$zonedir/services/$location/$service.service"
+                [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
+
+                # is location valid
+                [ ! "$action" = "allow" -a ! "$action" = "deny" ] \
+                    && doerror 1 "invalid action specified '$action', must be 'allow' or 'deny'"
+
+                # does service have an acl
+                [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
+
+                cat "$servfile" | grep -e "^$action $source" > "$servfile.tmp" && mv "$servfile.acl.tmp" "$servfile.acl"
+                ;;
+
+            list)
+                zone=$3
+                location=$4
+                service=$5
+
+                if [ -z "$service" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
+                    echo
+                    echo "    zone     The zone the service is enable for"
+                    echo "    service  The service to list acls for"
+                    echo
+                    exit 1
+                fi
+
+                # does zone exist
+                zonedir="$etcdir/role.active/zones/$zone"
+                [ ! -d "$zonedir" ] && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
+
+                # is location valid
+                [ ! "$location" = "local" -a ! "$location" = "remote" ] \
+                    && doerror 1 "invalid location specified '$location', must be 'local' or 'remote'"
+
+                # is service enabled
+                servfile="$zonedir/services/$location/$service.service"
+                [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
+
+                # does service have an acl
+                [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
+
+                echo
+                echo "ACLS FOR $zone/$location/$service"
+                echo
+                cat "$servfile.acl"
+                echo
+                ;;
+
+            *)
+                echo
+                echo "usage: $myname $mode { add | clear | delete | list }"
+                echo
+                echo "    add     Add an acl for a service"
+                echo "    clear   Clear acl for a service"
+                echo "    delete  Delete an acl for a servive"
+                echo "    list    List acls for a service"
+                echo
+                exit 1
+                ;;
+
+        esac
+        ;;
+
     *)
-        echo "usage: $myname { config | role[s] | rules | service[s] | zone[s] }"
+        echo "usage: $myname { acl[s] | config | role[s] | rules | service[s] | zone[s] }"
         exit 1
         ;;
 

@@ -127,64 +127,6 @@ sub newservice {
         }
     }
 
-    if (defined($def->{'acl'})) {
-        newacl($zone, $location, $service, $def->{'acl'});
-    } else {
-        newacl($zone, $location, $service, [{ 'action' => 'allow', 'source' => '0.0.0.0/0' }]);
-    }
-}
-
-#
-# newacl
-#
-sub newacl {
-    my $zone = shift;
-    my $location = shift;
-    my $service = shift;
-    my $acl = shift;
-
-    foreach my $entry (@{$acl}) {
-        my $out = [];
-        my $family = 'inet';
-
-        unless ($entry->{'action'} =~ /^(allow|deny)$/) {
-            error("invalid acl action specified for service \"$service\" in zone \"$zone\"; must be \"allow\" or \"deny\"");
-        }
-
-        foreach my $type (('destination', 'source', 'comment')) {
-            if (defined($entry->{$type})) {
-
-                if ($entry->{$type} =~ /^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}(|\/[0-9]{1,2})$/) {
-                    push(@{$out}, "-s $entry->{$type}");
-                } elsif ($entry->{$type} =~ /^[0-9a-f:]+(|\/[0-9]{1,3})$/) {
-                    $family = 'inet6';
-                    push(@{$out}, "-d $entry->{$type}");
-                } else {
-                    error("unknown address family for acl in service \"$service\" in zone \"$zone\"");
-                }
-
-            }
-        }
-
-        if (defined($entry->{'description'})) {
-            my $cmt = substr($entry->{'description'}, 0, 256);
-            $cmt =~ s/\'/\\\'/g;
-            push(@{$out}, "--comment '$service: ".substr($cmt, 0, 256-length($service)-2)."'");
-        }
-
-        if ($entry->{'action'} eq 'allow') {
-            push(@{$out}, "-j ACCEPT");
-        } elsif ($entry->{'action'} eq 'deny') {
-            push(@{$out}, "-j DROP");
-        }
-
-        my $srvcn = gencn($zone, $location, $service);
-        if ($family eq 'inet') {
-            print "iptables -A $srvcn ".join(' ', @{$out})."\n";
-        } elsif ($family eq 'inet6') {
-            print "ip6tables -A $srvcn ".join(' ', @{$out})."\n";
-        }
-    }
 }
 
 #
