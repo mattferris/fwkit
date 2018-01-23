@@ -861,10 +861,6 @@ case $mode in
  
                 servenabled $zone $location $service
 
-                # is action valid
-                [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ] \
-                    && doerror 1 "invalid action specified '$defaction', must be 'allow' or 'deny'"
-
                 # does service acl exist
                 [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
 
@@ -891,7 +887,7 @@ case $mode in
                 # does service have an acl
                 [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
 
-                cat "$servfile" | grep -e "^$defaction $source" > "$servfile.tmp" && mv "$servfile.acl.tmp" "$servfile.acl"
+                cat "$servfile.acl" | grep -v -e "^$defaction $source" > "$servfile.acl.tmp" && mv "$servfile.acl.tmp" "$servfile.acl"
                 ;;
 
             edit)
@@ -928,8 +924,13 @@ case $mode in
 
                 echo
                 echo "ACLS FOR $zone/$location/$service"
-                echo
-                cat "$servfile.acl"
+                printf '\n%-7s%-45s%s\n\n' "Action" "Source" "Description"
+                { while read line; do
+                    aclaction=$(echo $line | awk '{print $1}')
+                    source=$(echo $line | awk '{print $2}')
+                    description=$(echo $line | awk '{$1=$2=""; print $0}' | sed -r 's/^\s+//')
+                    printf '%-7s%-45s%s\n' "$aclaction" "$source" "$description"
+                done } < "$servfile.acl"
                 echo
                 ;;
 
