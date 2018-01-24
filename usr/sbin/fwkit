@@ -54,15 +54,15 @@ dozone() {
     echo "iptables -N $zrcn"
     echo "ip6tables -N $zrncn"
 
-    echo "iptables -X $zlcn" 1>&2
-    echo "ip6tables -X $zlcn" 1>&2
-    echo "iptables -X $zrcn" 1>&2
-    echo "ip6tables -X $zrcn" 1>&2
-
     echo "iptables -F $zlcn" 1>&2
     echo "ip6tables -F $zlcn" 1>&2
     echo "iptables -F $zrcn" 1>&2
     echo "ip6tables -F $zrcn" 1>&2
+
+    echo "iptables -X $zlcn" 1>&2
+    echo "ip6tables -X $zlcn" 1>&2
+    echo "iptables -X $zrcn" 1>&2
+    echo "ip6tables -X $zrcn" 1>&2
 }
 
 doservice() {
@@ -82,15 +82,15 @@ doservice() {
     slcn=$(chainname $zone $location $service)
     srcn=$(chainname $zone $location $service)
 
-    echo "iptables -X $slcn" 1>&2
-    echo "ip6tables -X $slcn" 1>&2
-    echo "iptables -X $srcn" 1>&2
-    echo "ip6tables -X $srcn" 1>&2
-
     echo "iptables -F $slcn" 1>&2
     echo "ip6tables -F $slcn" 1>&2
     echo "iptables -F $srcn" 1>&2
     echo "ip6tables -F $srcn" 1>&2
+
+    echo "iptables -X $slcn" 1>&2
+    echo "ip6tables -X $slcn" 1>&2
+    echo "iptables -X $srcn" 1>&2
+    echo "ip6tables -X $srcn" 1>&2
 }
 
 doacl() {
