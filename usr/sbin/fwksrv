@@ -61,22 +61,9 @@ sub newservice {
         error("service \"$service\" must define at least one connection");
     }
 
-    my $action = 'DROP';
-    if (defined($def->{'default_action'})) {
-        if ($def->{'default_action'} eq 'deny') {
-            $action = 'DROP';
-        } elsif ($def->{'default_action'} eq 'allow') {
-            $action = 'ACCEPT';
-        } else {
-            error("invalid value specified for default_action \"$def->{'default_action'}\" for service \"$service\" in zone \"$zone\"");
-        }
-    }
-
     my $srvcn = gencn($zone, $location, $service);
     print "iptables -N $srvcn\n";
-    print "iptables -P $srvcn $action\n";
     print "ip6tables -N $srvcn\n";
-    print "ip6tables -P $srvcn $action\n";
 
     if (defined($def->{'modprobe'})) {
         print "modprobe '".$def->{'modprobe'}."'\n";
