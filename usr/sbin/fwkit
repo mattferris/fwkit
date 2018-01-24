@@ -146,10 +146,20 @@ case $mode in
                 fi
 
                 # include role policy if it exists
-                policy="$etcdir/role.active/policy.rules"
-                if [ -f "$policy" ]; then
-                    echo "#\n# $policy\n#\n" >> $libdir/compiled.tmp
-                    cat "$policy" >> "$libdir/compiled.tmp"
+                policy="$etcdir/role.active/policy"
+                if [ -f "$policy.rules" ]; then
+                    echo "#\n# $policy.rules\n#\n" >> "$libdir/compiled.tmp"
+                    cat "$policy.rules" >> "$libdir/compiled.tmp"
+                elif [ -f "$policy" ]; then
+                    echo "#\n# $policy\n#\n" >> "$libdir/compiled.tmp"
+                    polaction=$(cat "$policy")
+                    if [ "$polaction" = "allow" ]; then
+                        polaction="ACCEPT"
+                    else
+                        polaction="DENY"
+                    fi
+                    echo "iptables -P INPUT $polaction" >> "$libdir/compiled.tmp"
+                    echo "ip6tables -P OUTPUT $polaction" >> "$libdir/compiled.tmp"
                 fi
 
                 # include pre-service rules
@@ -172,22 +182,15 @@ case $mode in
                         continue;
                     fi
 
-                    defaction="deny"
-                    if [ -f "$zonedir/default_action" ]; then
-                        defaction=$(cat $zonedir/default_action)
-                    fi
+                    echo "\n##\n## zone: $zone\n##\n" >> "$libdir/compiled.tmp"
 
-                    zcn=$(chainname $zone)
-                    echo "iptables -N $zcn" >> "$libdir/compiled.tmp"
-                    echo "ip6tables -N $zcn" >> "$libdir/compiled.tmp"
+                    zlcn=$(chainname $zone local)
+                    zrcn=$(chainname $zone remote)
 
-                    if [ "allow" = "$defaction" ]; then
-                        echo "iptables -P $zcn ACCEPT" >> "$libdir/compiled.tmp"
-                        echo "ip6tables -P $zcn ACCEPT" >> "$libdir/compiled.tmp"
-                    else
-                        echo "iptables -P $zcn DROP" >> "$libdir/compiled.tmp"
-                        echo "ip6tables -P $zcn DROP" >> "$libdir/compiled.tmp"
-                    fi
+                    echo "iptables -N $zlcn" >> "$libdir/compiled.tmp"
+                    echo "ip6tables -N $zlcn" >> "$libdir/compiled.tmp"
+                    echo "iptables -N $zrcn" >> "$libdir/compiled.tmp"
+                    echo "ip6tables -N $zrcn" >> "$libdir/compiled.tmp"
 
                     if [ ! -f "$zonedir/sources" ]; then
                         doerror 1 "no sources defined for zone '$zone'"
@@ -203,7 +206,7 @@ case $mode in
                         else
                             cmd="ip6tables"
                         fi
-                        echo "$cmd -A INPUT -s $i -j $zcn" >> "$libdir/compiled.tmp"
+                        echo "$cmd -A INPUT -s $i -j $zlcn" >> "$libdir/compiled.tmp"
                     done } < "$zonedir/sources"
 
                     # include local service rules
@@ -337,13 +340,15 @@ case $mode in
 
             define)
                 role=$3
-                desc=$4
+                policy=$4
+                desc=$5
 
                 if [ -z "$role" ]; then
                     echo
-                    echo "usage: $myname $mode $action <name> <description>"
+                    echo "usage: $myname $mode $action <name> <policy> <description>"
                     echo
                     echo "    name         The name of the role to create"
+                    echo "    policy       The default packet policy of the role (allow or deny)"
                     echo "    description  An optional description for the new role"
                     echo
                     exit 1
@@ -355,11 +360,8 @@ case $mode in
 
                 mkdir -p "$etcdir/roles/$role/zones/default/services/local" "$etcdir/roles/$role/zones/default/services/remote"
                 echo "0.0.0.0/0" > "$etcdir/roles/$role/zones/default/sources"
-                echo "allow" > "$etcdir/roles/$role/zones/default/default_action"
+                echo "$policy" > "$etcdir/roles/$role/policy"
                 echo "$desc" > "$etcdir/roles/$role/description"
-
-                echo "#\n# Policy rules for role '$role'\n#\n" > "$etcdir/roles/$role/policy.rules"
-                exec "${EDITOR:-/usr/bin/vi}" "$etcdir/roles/$role/policy.rules"
                 ;;
 
             list)
@@ -752,17 +754,15 @@ case $mode in
 
             define)
                 zone=$3
-                defaction=$4
-                source=$5
-                desc=$6
+                source=$4
+                desc=$5
                 zonedir="$etcdir/role.active/zones/$zone"
 
                 if [ -z "$zone" ]; then
                     echo
-                    echo "usage: $myname $mode $action <name> <action> <source> [ <description> ]"
+                    echo "usage: $myname $mode $action <name> <source> [ <description> ]"
                     echo
                     echo "    name         The name of the zone to define"
-                    echo "    action       The default zone policy, allow or deny"
                     echo "    source       The source host/network address of the zone"
                     echo "    description  Optional description for the zone"
                     echo
@@ -773,16 +773,11 @@ case $mode in
                     doerror 1 "zone already defined '$zone'"
                 fi
 
-                if [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ]; then
-                    doerror 1 "zone default action must be 'allow' or 'deny', '$defaction' specified"
-                fi
-
                 if [ -z "$source" ]; then
                     doerror 1 "zone must define a source address/network"
                 fi
 
                 mkdir -p "$zonedir/services/local" "$zonedir/services/remote"
-                echo $defaction > "$zonedir/default_action"
 
                 for src in $(echo $source); do
                     echo "$src" >> "$zonedir/sources"

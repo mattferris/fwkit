@@ -12,9 +12,11 @@ fwkit \- Firewall Kit for modular firewalls
 .br
 \fBfwkit role set \fIrole\fR
 .br
-.fBfwkit role\fR { \fBdefine\fR | \fBundefine\fR } \fIrole\fR [ \fIdescription\fR ]
+.fBfwkit role\fR { \fBdefine\fR | \fBundefine\fR } \fIrole\fR \fIpolicy\fR [ \fIdescription\fR ]
 .br
-\fBfwkit zone\fR { \fBdefine\fR | \fBundefine\fR } \fIzone source\R [ \FIdescription\fR ]
+\fBfwkit zone\fR \fBdefine\fR \fIname source\R [ \FIdescription\fR ]
+.br
+\fBfwkit zone\fR \fBundefine\fR \fIname\fR
 .br
 \fBfwkit zone list\fR
 .br
@@ -79,8 +81,8 @@ List the available roles. The active role is marked with an asterisk.
 \fBset \fIrole\fR
 Set the active role to \fIrole\fR.
 .TP .4i
-.B define
-Define a new role \fIrole\fR, with optional description \fIdescription\fR.
+\fBdefine \fIrole policy\fR [ \fIdescription\fR ]
+Define a new role \fIrole\fR, with a default policy of \fIpolicy\fR and optional description \fIdescription\fR.
 .TP .4i
 .B undefine
 Undefine (delete) an existing role \fIrole\fR.
@@ -90,11 +92,11 @@ Undefine (delete) an existing role \fIrole\fR.
 Zone management.
 .RS
 .TP .4i
-.B define
-Define a new zone \fIzone\fR for the currently enabled role, from network or host address \fIsource\fR, with optional description \fIdescription\fR.
+\fBdefine \fIname source\fR [ \fIdescription\fR ]
+Define a new zone \fIname\fR for the currently enabled role, from network or host address \fIsource\fR, with optional description \fIdescription\fR.
 .TP .4i
-.B undefine
-Undefine an existing zone \fIzone\fR for the currently enabled role.
+\fBundefine \fIname
+Undefine an existing zone \fIname\fR for the currently enabled role.
 .TP .4i
 .B list
 List the zones for the currently enabled role.
@@ -124,13 +126,16 @@ Add an ACL for host/network address \fIsource\fR for \fIservice\fR in zone \fIzo
 .TP .4i
 \fBclear \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
 Clear all ACL entries for service \fIservice\fR in zone \fIzone\fR.
+.TP .4i
 \fBdelete \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice action source\fR
 Delete an ACL \fIaction\fR \fIsource\fR for service \fIservice\fR in zone \fIzone\fR.
+.TP .4i
 \fBedit \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
 Launch an editor to manually edit the ACL entries for \fIservice\fR in zone \fIzone\fR.
+.TP .4i
 \fBlist \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
 List the ACL entries for \fIservice\fR in zone \fIzone\fR.
-.TP .4i
+.RS
 .SH ZONE MANAGEMENT
 Roles are created with a single zone called "default". Additional zones can be defined for a role to segment traffic from differnet networks and/or interfaces, allowing services to be enabled or disabled independently for these segments. For example:
 .P
