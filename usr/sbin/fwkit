@@ -44,11 +44,33 @@ donotice() {
     echo "notice: $1" 1>&2
 }
 
+dozone() {
+    name=$1
+    zlcn=$(chainname $zone local)
+    zrcn=$(chainname $zone remote)
+
+    echo "iptables -N $zlcn"
+    echo "ip6tables -N $zlcn"
+    echo "iptables -N $zrcn"
+    echo "ip6tables -N $zrncn"
+
+    echo "iptables -X $zlcn" 1>&2
+    echo "ip6tables -X $zlcn" 1>&2
+    echo "iptables -X $zrcn" 1>&2
+    echo "ip6tables -X $zrcn" 1>&2
+
+    echo "iptables -F $zlcn" 1>&2
+    echo "ip6tables -F $zlcn" 1>&2
+    echo "iptables -F $zrcn" 1>&2
+    echo "ip6tables -F $zrcn" 1>&2
+}
+
 doservice() {
     zone=$1
     location=$2
     service=$3
     servfile="$etcdir/role.active/zones/$zone/services/$location/$service.service"
+
     echo "\n#\n# $i\n#\n"
     if [ -x "$servfile" ]; then
         "$servfile" $zone $location
@@ -56,6 +78,19 @@ doservice() {
         cat "$servfile"
     fi
     doacl $zone $location $service
+
+    slcn=$(chainname $zone $location $service)
+    srcn=$(chainname $zone $location $service)
+
+    echo "iptables -X $slcn" 1>&2
+    echo "ip6tables -X $slcn" 1>&2
+    echo "iptables -X $srcn" 1>&2
+    echo "ip6tables -X $srcn" 1>&2
+
+    echo "iptables -F $slcn" 1>&2
+    echo "ip6tables -F $slcn" 1>&2
+    echo "iptables -F $srcn" 1>&2
+    echo "ip6tables -F $srcn" 1>&2
 }
 
 doacl() {
@@ -64,6 +99,7 @@ doacl() {
     service=$3
     aclfile="$etcdir/role.active/zones/$zone/services/$location/$service.service.acl"
     chain=$(chainname $zone $location $service)
+
     if [ -f "$aclfile" ]; then
         { while read line; do
             action=$(echo $line | cut -d\  -f1)
@@ -183,14 +219,7 @@ case $mode in
                     fi
 
                     echo "\n##\n## zone: $zone\n##\n" >> "$libdir/compiled.tmp"
-
-                    zlcn=$(chainname $zone local)
-                    zrcn=$(chainname $zone remote)
-
-                    echo "iptables -N $zlcn" >> "$libdir/compiled.tmp"
-                    echo "ip6tables -N $zlcn" >> "$libdir/compiled.tmp"
-                    echo "iptables -N $zrcn" >> "$libdir/compiled.tmp"
-                    echo "ip6tables -N $zrcn" >> "$libdir/compiled.tmp"
+                    dozone $zone >> "$libdir/compiled.tmp" 2>>"$libdir/unload.$zone.tmp"
 
                     if [ ! -f "$zonedir/sources" ]; then
                         doerror 1 "no sources defined for zone '$zone'"
@@ -207,6 +236,10 @@ case $mode in
                             cmd="ip6tables"
                         fi
                         echo "$cmd -A INPUT -s $i -j $zlcn" >> "$libdir/compiled.tmp"
+                        echo "$cmd -D INPUT -s $i -j $zlcn" >> "$libdir/unload.tmp"
+                        echo "$cmd -A OUTPUT -s $i -j $zrcn" >> "$libdir/compiled.tmp"
+                        echo "$cmd -D OUTPUT -s $i -j $zrcn" >> "$libdir/unload.tmp"
+                        cat "$libdir/unload.$zone.tmp" >> "$libdir/unload.tmp" && rm "$libdir/unload.$zone.tmp"
                     done } < "$zonedir/sources"
 
                     # include local service rules
@@ -214,7 +247,7 @@ case $mode in
                     if [ -d "$locsrv" ]; then
                         for i in $( find "$locsrv" -name "*.service" ); do
                             servname=$( echo $(basename $i) | sed 's/.service//' )
-                            doservice $zone local $servname >> "$libdir/compiled.tmp"
+                            doservice $zone local $servname >> "$libdir/compiled.tmp" 2>>"$libdir/unload.tmp"
                         done
                     fi
 
@@ -223,7 +256,7 @@ case $mode in
                     if [ -d "$rmtsrv" ]; then
                         for i in $( find "$rmtsrv" -name "*.service" ); do
                             servname=$( echo $(basename $i) | sed 's/.service//' )
-                            doservice $zone remote $servname >> "$libdir/compiled.tmp"
+                            doservice $zone remote $servname >> "$libdir/compiled.tmp" 2>>"$libdir/unload.tmp"
                         done
                     fi
                 done
@@ -241,6 +274,7 @@ case $mode in
                 fi
 
                 mv "$libdir/compiled.tmp" "$libdir/compiled.rules"
+                mv "$libdir/unload.tmp" "$libdir/unload"
 
                 if [ -f "$libdir/cached.rules" ]; then
                     rm "$libdir/cached.rules"
@@ -287,25 +321,29 @@ case $mode in
             unload)
                 /sbin/iptables-save > "$libdir/cached.rules"
 
-                iptables -P INPUT ACCEPT
-                iptables -P OUTPUT ACCEPT
-                iptables -P FORWARD ACCEPT
-                iptables -F -t filter
-                iptables -F -t nat
-                iptables -F -t mangle
-                iptables -F -t raw
-                iptables -F -t security
-                iptables -X
+                if [ -f "$libdir/unload" ]; then
+                    /bin/sh "$libdir/unload"
+                else
+                    iptables -P INPUT ACCEPT
+                    iptables -P OUTPUT ACCEPT
+                    iptables -P FORWARD ACCEPT
+                    iptables -F -t filter
+                    iptables -F -t nat
+                    iptables -F -t mangle
+                    iptables -F -t raw
+                    iptables -F -t security
+                    iptables -X
 
-                ip6tables -P INPUT ACCEPT
-                ip6tables -P OUTPUT ACCEPT
-                ip6tables -P FORWARD ACCEPT
-                ip6tables -F -t filter
-                ip6tables -F -t nat
-                ip6tables -F -t mangle
-                ip6tables -F -t raw
-                ip6tables -F -t security
-                ip6tables -X
+                    ip6tables -P INPUT ACCEPT
+                    ip6tables -P OUTPUT ACCEPT
+                    ip6tables -P FORWARD ACCEPT
+                    ip6tables -F -t filter
+                    ip6tables -F -t nat
+                    ip6tables -F -t mangle
+                    ip6tables -F -t raw
+                    ip6tables -F -t security
+                    ip6tables -X
+                fi
 
                 echo "rules unloaded"
                 ;;
