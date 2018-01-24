@@ -237,8 +237,8 @@ case $mode in
                         fi
                         echo "$cmd -A INPUT -s $i -j $zlcn" >> "$libdir/compiled.tmp"
                         echo "$cmd -D INPUT -s $i -j $zlcn" >> "$libdir/unload.tmp"
-                        echo "$cmd -A OUTPUT -s $i -j $zrcn" >> "$libdir/compiled.tmp"
-                        echo "$cmd -D OUTPUT -s $i -j $zrcn" >> "$libdir/unload.tmp"
+                        echo "$cmd -A OUTPUT -d $i -j $zrcn" >> "$libdir/compiled.tmp"
+                        echo "$cmd -D OUTPUT -d $i -j $zrcn" >> "$libdir/unload.tmp"
                         cat "$libdir/unload.$zone.tmp" >> "$libdir/unload.tmp" && rm "$libdir/unload.$zone.tmp"
                     done } < "$zonedir/sources"
 
