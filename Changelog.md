@@ -11,6 +11,7 @@ Changelog
 * Removed pre-packaged roles in favour of post-install customization
 * Role management now available via command-line
 * IPv6 support via ip6tables
+* Support for granular rule unloading (avoids simply flushing the built-in chains)
 
 0.3
 ---
