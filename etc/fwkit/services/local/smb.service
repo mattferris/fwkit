@@ -1,2 +1,0 @@
-# fwkit - local/smb.service - Server Message Block (SMB); 445/tcp
-iptables -A INPUT -p tcp --dport 445 -m conntrack --ctstate NEW -j ACCEPT

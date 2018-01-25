@@ -1,2 +1,0 @@
-# fwkit - remote/rdp.service - Remote Desktop Protocol; 3389/tcp
-iptables -A OUTPUT -p tcp --dport 3389 -m conntrack --ctstate NEW -j ACCEPT

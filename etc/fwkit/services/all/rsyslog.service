@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - rsyslog.service - Remote Syslog; 514/udp
+
+services:
+  rsyslog:
+    descriptions: Remote Syslog
+    connections:
+      -
+        protocol: udp
+        listen_port: 514
+        states: new

@@ -1,0 +1,15 @@
+#!/usr/sbin/fwksrv
+# fwkit - rpcbind.service - RPC Bind Service; 111/tcp, 111/udp
+
+services:
+  rpcbind:
+    description: RPC Bind Service
+    connections:
+      -
+        protocol: tcp
+        listen_port: 111
+        states: new
+      - 
+        protocol: udp
+        listen_port: 111
+        states: new

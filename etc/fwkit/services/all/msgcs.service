@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - msgcs.service - Microsoft Global Catalog over TLS (Active Directory); 3269/tcp
+
+services:
+  msgcs:
+    description: Microsoft Global Catalog over TLS (Active Directory)
+    connections:
+      -
+        protocol: tcp
+        listen_port: 3269
+        states: new

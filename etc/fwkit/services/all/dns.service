@@ -1,0 +1,15 @@
+#!/usr/sbin/fwksrv
+# fwkit - dns.service - Domain Name Service; 53/tcp, 53/udp
+
+services:
+  dns:
+    description: DNS (Domain Name Service)
+    connections:
+      -
+        protocol: tcp
+        listen_port: 53
+        states: new
+      -
+        protocol: udp
+        listen_port: 53
+        states: new

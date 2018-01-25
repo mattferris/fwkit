@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - ntp.service - Network Time Protocol; 123/udp
+
+services:
+  ntp:
+    description: Network Time Protocol
+    connections:
+      - 
+        protocol: udp
+        listen_port: 123
+        states: new

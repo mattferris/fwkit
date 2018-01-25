@@ -1,3 +1,0 @@
-# fwkit - local/radius.service - RADIUS Authentication; 1812/tcp, 1812/udp
-iptables -A INPUT -p tcp --dport 1812 -m conntrack --ctstate NEW -j ACCEPT
-iptables -A INPUT -p udp --dport 1812 -m conntrack --ctstate NEW -j ACCEPT

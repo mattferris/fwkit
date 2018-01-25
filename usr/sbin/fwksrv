@@ -1,0 +1,131 @@
+#!/usr/bin/perl
+
+use YAML::Tiny;
+
+my $file = $ARGV[0];
+my $zone = $ARGV[1];
+my $location = $ARGV[2];
+
+unless (-f $file) {
+    error("file doesn't exist");
+}
+
+unless (defined($zone)) {
+    error("no zone specified");
+}
+
+unless (defined($location)) {
+    error("no location specified");
+}
+
+unless ($location =~ /^(local|remote)$/) {
+    error("invalid location, must be \"local\" or \"remote\"");
+}
+
+# get contents
+my $yaml = YAML::Tiny->read($file);
+my $cfg = $yaml->[0];
+
+foreach my $s (keys(%{$cfg->{'services'}})) {
+    # generate service rules
+    newservice($zone, $location, $s, $cfg->{'services'}->{$s});
+}
+
+#
+# error sub
+#
+sub error {
+    my $msg = shift;
+    print STDERR "$file error: $msg\n";
+    exit(1);
+}
+
+#
+# newservice
+#
+sub newservice {
+    my $zone = shift;
+    my $location = shift;
+    my $service = shift;
+    my $def = shift;
+
+    unless ($service =~ /^[a-z0-9_]+$/) {
+        error("invalid service name \"$service\"; must only contain letters, numbers, and underscores");
+    }
+
+    unless (!defined($zones->{$zone}->{$service})) {
+        error("service \"$service\" has already been defined in zone \"$service\"");
+    }
+
+    unless (defined($def->{'connections'}) && length($def->{'connections'}) > 0) {
+        error("service \"$service\" must define at least one connection");
+    }
+
+    my $srvcn = gencn($zone, $location, $service);
+    print "iptables -N $srvcn\n";
+    print "ip6tables -N $srvcn\n";
+
+    if (defined($def->{'modprobe'})) {
+        print "modprobe '".$def->{'modprobe'}."'\n";
+    }
+
+    foreach my $trpt (@{$def->{'connections'}}) {
+        my $out = [];
+
+        if (defined($trpt->{'protocol'})) {
+            push(@{$out}, "-p $trpt->{'protocol'}");
+        } else {
+            error("transport must define a protocol in service \"$service\" in zone \"$zone\"");
+        }
+
+        if (defined($trpt->{'listen_port'})) {
+            if ($trpt->{'listen_port'} !~ /^[0-9:]+$/) {
+                error("invalid port value specified for listen_port in service \"$service\" in zone \"$zone\"");
+            }
+            push(@{$out}, "--dport $trpt->{'listen_port'}");
+        }
+
+        if (defined($trpt->{'source_port'})) {
+            if ($trpt->{'source_port'} !~ /^[0-9:]+$/) {
+                error("invalid port value specified for source_port in service \"$service\" in zone \"$zone\"");
+            }
+            push(@{$out}, "--sport $trpt->{'source_port'}");
+        }
+
+        if (defined($trpt->{'state'})) {
+            push(@{$out}, "-m conntrack --ctstate ".uc($trpt->{'state'}));
+        }
+
+        if (defined($trpt->{'description'})) {
+            my $cmt = substr($trpt->{'description'}, 0, 256);
+            $cmt =~ s/\'/\\\'/g;
+            push(@{$out}, "--comment '$service: ".substr($cmt, 0, 256-length($service)-2)."'");
+        }
+
+        push(@{$out}, "-j $srvcn");
+
+        my $zonecn = gencn($zone, $location);
+
+        if (!defined($trpt->{'family'}) || $trpt->{'family'} eq 'inet') {
+            print "iptables -A $zonecn ".join(' ', @{$out})."\n";
+        }
+        if (!defined($trpt->{'family'}) || $trpt->{'family'} eq 'inet6') {
+            print "ip6tables -A $zonecn ".join(' ', @{$out})."\n";
+        }
+    }
+
+}
+
+#
+# gencn
+#
+sub gencn {
+    my $zone = shift;
+    my $location = shift;
+    my $service = shift;
+    my @name = ('fwk', $zone, substr($location, 0, 1));
+    if (defined($service)) {
+        push(@name, $service);
+    }
+    return substr(join('_', @name), 0, 30);
+}

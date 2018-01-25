@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - apt-cacher-ng.service - APT Cacher NG; 3142/tcp
+
+services:
+  apt_cacher:
+    description: APT Cache
+    connections:
+      -
+        protocol: tcp
+        listen_port: 3142
+        states: new

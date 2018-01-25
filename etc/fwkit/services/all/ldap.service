@@ -1,0 +1,15 @@
+#!/usr/sbin/fwksrv
+# fwkit - ldap.service - Lightweight Directory Access Protocol; 389/tcp, 389/udp
+
+services:
+  ldap:
+    description: Lightweight Directory Access Protocol
+    connections:
+      -
+        protocol: tcp
+        listen_port: 389
+        states: new
+      - 
+        protocol: udp
+        listen_port: 389
+        states: new

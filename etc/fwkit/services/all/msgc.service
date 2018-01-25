@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - msgc.service - Microsoft Global Catalog (Active Directory); 3268/tcp
+
+services:
+  msgc:
+    description: Microsoft Global Catalog (Active Directory)
+    connections:
+      -
+        protocol: 3268
+        listen_port: 3268
+        states: new

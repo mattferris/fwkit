@@ -1,3 +1,0 @@
-# fwkit - local/radacct.service - RADIUS Accounting; 1813/tcp, 1813/udp
-iptables -A INPUT -p tcp --dport 1813 -m conntrack --ctstate NEW -j ACCEPT
-iptables -A INPUT -p udp --dport 1813 -m conntrack --ctstate NEW -j ACCEPT

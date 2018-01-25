@@ -1,0 +1,16 @@
+#!/usr/sbin/fwksrv
+# fwkit - tftp.service - Trivial File Transfer Protocol; 69/udp
+
+services:
+  tftp:
+    description: TFTP (Trivial File Transfer Protocol)
+    modprobe: nf_conntrack_tftp
+    connections:
+      -
+        protocol: udp
+        listen_port: 69
+        states: new
+      -
+        protocol: udp
+        listen_port: 1024:65525
+        states: new

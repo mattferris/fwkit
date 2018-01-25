@@ -1,2 +1,0 @@
-# fwkit - local/rsyslog.service - Remote Syslog; 514/udp
-iptables -A INPUT -p udp --dport 514 -m conntrack --ctstate NEW -j ACCEPT

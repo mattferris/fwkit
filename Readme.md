@@ -128,8 +128,14 @@ Beyond simply enabling or disabling services, there are a few options for custom
         file-server/
             description
             policy.rules
-            services.local/
-            services.remote/
+            zones/
+                default/
+                   default_action
+                   description
+                   services/
+                       local/
+                   services/
+                       remote/
         ...
     rules.d/
         pre/
@@ -137,9 +143,9 @@ Beyond simply enabling or disabling services, there are a few options for custom
         post/
     services/
         local/
-           ...
+            ...
         remote/
-           ...
+            ...
 ```
 
 ### policy.rules
@@ -151,6 +157,10 @@ This file is included before all others during the compilation process and is in
 iptables -P INPUT DROP
 iptables -P OUTPUT DROP
 ```
+
+### zones/<zone>/default_action
+
+This file specifies the default action of traffic for the zone. Values are `allow` or `deny`.
 
 ### rules.d
 
@@ -181,23 +191,32 @@ iptables -A INPUT -p tcp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
 iptables -A INPUT -p udp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
 ```
 
-When a service is enabled, it is symlinked into the active role's `services.local` or `services.remote` sub-directory.
+When a service is enabled, it is symlinked into the active role's `zones/<zone>/services/local` or `zones/<zone>/services/remote` sub-directory.
 
 ```
-# ls /etc/fwkit/role.active/services.local
-lrwxrwxrwx 1 root root 35 Jul 20 18:01 dns.service -> ../../../services/local/dns.service
-lrwxrwxrwx 1 root root 40 Jul 20 18:01 kerberos.service -> ../../../services/local/kerberos.service
-lrwxrwxrwx 1 root root 39 Jul 20 18:01 kpasswd.service -> ../../../services/local/kpasswd.service
-lrwxrwxrwx 1 root root 36 Jul 20 18:01 ldap.service -> ../../../services/local/ldap.service
-lrwxrwxrwx 1 root root 37 Jul 20 18:01 ldaps.service -> ../../../services/local/ldaps.service
-lrwxrwxrwx 1 root root 36 Jul 20 18:01 msgc.service -> ../../../services/local/msgc.service
-lrwxrwxrwx 1 root root 40 Jul 20 18:01 msgc-ssl.service -> ../../../services/local/msgc-ssl.service
-lrwxrwxrwx 1 root root 37 Jul 20 18:01 msrpc.service -> ../../../services/local/msrpc.service
-lrwxrwxrwx 1 root root 35 Jul 20 18:01 ntp.service -> ../../../services/local/ntp.service
-lrwxrwxrwx 1 root root 37 Jul 20 18:01 rpcls.service -> ../../../services/local/rpcls.service
-lrwxrwxrwx 1 root root 35 Jul 21 11:42 smb.service -> ../../../services/local/smb.service
-lrwxrwxrwx 1 root root 36 Jul 20 18:01 smtp.service -> ../../../services/local/smtp.service
-lrwxrwxrwx 1 root root 35 Jul 20 18:37 ssh.service -> ../../../services/local/ssh.service
+# ls /etc/fwkit/role.active/zones/default/services/local
+lrwxrwxrwx 1 root root 35 Jul 20 18:01 dns.service -> /etc/fwkit/role.active/zones/default/services/local/dns.service
+lrwxrwxrwx 1 root root 35 Jul 20 18:01 ntp.service -> /etc/fwkit/role.active/zones/default/services/local/ntp.service
+lrwxrwxrwx 1 root root 36 Jul 20 18:01 smtp.service -> /etc/fwkit/role.active/zones/default/services/local/smtp.service
+lrwxrwxrwx 1 root root 35 Jul 20 18:37 ssh.service -> /etc/fwkit/role.active/zones/default/services/local/ssh.service
+```
+
+If service definition files have the execute bit set, then fwkit attempts to run the definition as a script. The script is passed two arguments: the zone the service is being enabled for, and the location of the service (*local* or *remote*). The script's output is captured and is included in the compiled rule data. fwkit includes an utility that called `fwksrv` which is used to allow for YAML service definitions. A service definition using a YAML format looks like:
+
+```yaml
+#!/usr/sbin/fwksrv
+# fwkit - local/dns.service - Domain Name Service; 53/tcp, 53/udp
+
+services:
+  dns:
+    description: Domain Name Service
+    connections:
+      -
+        protocol: tcp
+        listen_port: 53
+      -
+        protocol: udp
+        listen_port: 53
 ```
 
 Configuration

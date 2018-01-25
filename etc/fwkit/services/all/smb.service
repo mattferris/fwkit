@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - smb.service - Server Message Block (SMB); 445/tcp
+
+services:
+  smb:
+    description: SMB (Service Message Block)
+    connections:
+      -
+        protocol: tcp
+        listen_port: 445
+        states: new

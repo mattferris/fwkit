@@ -1,0 +1,23 @@
+#!/usr/sbin/fwksrv
+# fwkit - nfs.service - Network File Service; 2049/tcp, 2049/udp, 1024:65535/tcp, 1024:65535/udp
+
+services:
+  nfs:
+    description: Network File Service
+    connections:
+      -
+        protocol: tcp
+        listen_port: 2049
+        states: new
+      - 
+        protocol: udp
+        listen_port: 2049
+        states: new
+      - 
+        protocol: tcp
+        listen_port: 1024:65535
+        states: new
+      - 
+        protocol: udp
+        listen_port: 1024:65535
+        states: new
