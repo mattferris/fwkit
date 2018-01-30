@@ -6,7 +6,7 @@ After=network.target
 Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=-/etc/default/fwkit
-ExecStart=/usr/sbin/fwkit rules unload && /usr/sbin/fwkit rules load /etc/fwkit
+ExecStart=/usr/sbin/fwkit rules load
 ExecReload=/usr/sbin/fwkit rules reload
 ExecStop=/usr/sbin/fwkit rules unload
 
