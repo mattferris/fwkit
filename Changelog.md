@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.4.1
+-----
+
+* Fixed systemd unit file, startup was caching empty ruleset and then loading empty (cached) ruleset
+
 0.4
 ---
 
