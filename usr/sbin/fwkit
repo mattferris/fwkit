@@ -850,15 +850,18 @@ case $mode in
                 ;;
 
             list)
+                printf '  %-15s%-30s%s\n' "Zone Name" "Description" "Source(s)"
                 for zone in $(ls -1 "$etcdir/role.active/zones"); do
                     zonedir="$etcdir/role.active/zones/$zone"
+                    src=""
+                    if [ -f "$zonedir/sources" ]; then
+                        src=$(for i in `cat "$zonedir/sources"`; do echo -n "$i "; done)
+                    fi
                     desc=""
                     if [ -f "$zonedir/description" ]; then
                         desc=$(head -n1 "$zonedir/description")
                     fi
-                    echo -n "  "
-                    printf '%-15s' "$zone"
-                    echo $desc
+                    printf '  %-15s%-30s%s\n' "$zone" "$desc" "$src"
                 done
                 ;;
 
