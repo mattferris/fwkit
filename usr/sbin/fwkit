@@ -1,5 +1,7 @@
 #!/bin/sh
 
+version="develop"
+
 myname=$( basename $0 )
 
 etcdir=/etc/fwkit
@@ -154,6 +156,13 @@ chainname() {
 confload core core_
 
 case $mode in
+
+    -v)
+        #
+        # Output version
+        #
+        echo fwkit version $version
+        ;;
 
     rules)
 
