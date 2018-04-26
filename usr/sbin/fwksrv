@@ -99,7 +99,7 @@ sub newservice {
         if (defined($trpt->{'description'})) {
             my $cmt = substr($trpt->{'description'}, 0, 256);
             $cmt =~ s/\'/\\\'/g;
-            push(@{$out}, "--comment '$service: ".substr($cmt, 0, 256-length($service)-2)."'");
+            push(@{$out}, "-m comment --comment '$service: ".substr($cmt, 0, 256-length($service)-2)."'");
         }
 
         push(@{$out}, "-j $srvcn");
