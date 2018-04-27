@@ -116,8 +116,8 @@ doacl() {
             cmd="iptables"
             [ "allow" = "$action" ] && target="ACCEPT"
             [ ! -z $(echo $source | grep ':') ] && cmd="ip6tables"
-            [ ! -z "$cmt" ] && cmt='-m comment --comment "$cmt"'
-            echo "$cmd -A $chain $negated -s $source -j $target"
+            [ ! -z "$cmt" ] && cmt="-m comment --comment \"$cmt\""
+            echo "$cmd -A $chain $negated -s $source $cmt -j $target"
         done } < "$aclfile"
     else
         echo "iptables -A $chain -s 0.0.0.0/0 -j ACCEPT"
