@@ -629,7 +629,10 @@ case $mode in
                         doerror 1 "$type service $service already enabled for zone $zone"
                     fi
 
-                    ln -s "$etcdir/services/$type/$service.service" "$etcdir/role.active/zones/$zone/services/$type"
+                    ln -s "$etcdir/services/$type/$service.service" "$etcdir/role.active/zones/$zone/services/$type" > /dev/null 2>&1
+                    if [ ! $? = 0 ]; then
+                      doerror 1 "failed to enable $type service $service: encountered error while creating symlink"
+                    fi
 
                     services="$services $service"
 
