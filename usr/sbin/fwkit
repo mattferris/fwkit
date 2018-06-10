@@ -103,7 +103,7 @@ doacl() {
     chain=$(chainname $zone $location $service)
 
     if [ -f "$aclfile" ]; then
-        { while read line; do
+        echo $(grep -v -e '^default' "$aclfile") | { while read line; do
             action=$(echo $line | cut -d\  -f1)
             source=$(echo $line | cut -d\  -f2)
             cmt=$(echo $line | cut -d\  -f3-)
@@ -118,7 +118,14 @@ doacl() {
             [ ! -z $(echo $source | grep ':') ] && cmd="ip6tables"
             [ ! -z "$cmt" ] && cmt="-m comment --comment \"$cmt\""
             echo "$cmd -A $chain $negated -s $source $cmt -j $target"
-        done } < "$aclfile"
+        done }
+
+        defaction=$(head -n1 "$aclfile" | cut -d\  -f2)
+        target=DROP
+        [ "allow" = "$defaction" ] && target="ACCEPT"
+        echo "iptables -A $chain -s 0.0.0.0/0 -j $target"
+        echo "ip6tables -A $chain -s ::0/0 -j $target"
+
     else
         echo "iptables -A $chain -s 0.0.0.0/0 -j ACCEPT"
         echo "ip6tables -A $chain -s ::0/0 -j ACCEPT"
@@ -936,6 +943,10 @@ case $mode in
                 [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ] \
                     && doerror 1 "invalid action specified '$defaction', must be 'allow' or 'deny'"
 
+                if [ ! -f "$servfile.acl" ]; then
+                    echo "default allow" > "$servfile.acl"
+                fi
+
                 echo "$defaction $source $description" >> "$servfile.acl"
                 ;;
 
@@ -997,7 +1008,34 @@ case $mode in
                 exec ${EDITOR:-vi} "$servfile.acl"
                 ;;
 
-            list)
+            set)
+                defaction=$6
+
+                if [ -z "$defaction" ]; then
+                    echo
+                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny }"
+                    echo
+                    echo "    zone     The zone the service is enabled for"
+                    echo "    service  The service to apply the ACL to"
+                    echo
+                    exit 1
+                fi
+
+                servenabled $zone $location $service
+
+                # is action valid
+                [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ] \
+                    && doerror 1 "invalid action specified '$defaction', must be 'allow' or 'deny'"
+
+                if [ ! -f "$servfile.acl" ]; then
+                    doerror 1 "no acl defined for $location service '$service'"
+                else
+                    echo "default $defaction" > "$servfile.acl.tmp"
+                    cat "$servfile.acl" | grep -v -e "^default" >> "$servfile.acl.tmp" && mv "$servfile.acl.tmp" "$servfile.acl"
+                fi
+                ;;
+
+            show)
                 if [ -z "$service" ]; then
                     echo
                     echo "usage: $myname $mode $action <zone> { local | remote } <service>"
@@ -1016,12 +1054,14 @@ case $mode in
                 echo
                 echo "ACLS FOR $zone/$location/$service"
                 printf '\n%-7s%-45s%s\n\n' "Action" "Source" "Description"
-                { while read line; do
+                echo $(grep -v -e '^default' "$servfile.acl") | { while read line; do
                     aclaction=$(echo $line | awk '{print $1}')
                     source=$(echo $line | awk '{print $2}')
                     description=$(echo $line | awk '{$1=$2=""; print $0}' | sed -r 's/^\s+//')
                     printf '%-7s%-45s%s\n' "$aclaction" "$source" "$description"
-                done } < "$servfile.acl"
+                done } 
+                echo
+                echo Default action: $(head -n1 $servfile.acl | cut -d\  -f2)
                 echo
                 ;;
 
@@ -1033,7 +1073,7 @@ case $mode in
                 echo "    clear   Clear acl for a service"
                 echo "    delete  Delete an acl for a servive"
                 echo "    edit    Launch an editor to manually edit ACL entires for a service"
-                echo "    list    List acls for a service"
+                echo "    show    Show ACL for a service"
                 echo
                 exit 1
                 ;;
