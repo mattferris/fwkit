@@ -955,7 +955,7 @@ case $mode in
                     echo
                     echo "usage: $myname $mode $action <zone> { local | remote } <service>"
                     echo
-                    echo "    zone     The zone the service is enable for"
+                    echo "    zone     The zone the service is enabled for"
                     echo "    service  The service to apply the acl to"
                     echo
                     exit 1
@@ -977,8 +977,8 @@ case $mode in
                     echo
                     echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source>"
                     echo
-                    echo "    zone     The zone the service is enable for"
-                    echo "    service  The service to apply the acl to"
+                    echo "    zone     The zone the service is enabled for"
+                    echo "    service  The service to apply the ACL to"
                     echo "    source   The host or network address"
                     echo
                     exit 1
@@ -997,8 +997,8 @@ case $mode in
                     echo
                     echo "usage: $myname $mode $action <zone> { local | remote } <service>"
                     echo
-                    echo "    zone     The zone the service is enable for"
-                    echo "    service  The service to list acls for"
+                    echo "    zone     The zone the service is enabled for"
+                    echo "    service  The service to list ACLs for"
                     echo
                     exit 1
                 fi
@@ -1040,7 +1040,7 @@ case $mode in
                     echo
                     echo "usage: $myname $mode $action <zone> { local | remote } <service>"
                     echo
-                    echo "    zone     The zone the service is enable for"
+                    echo "    zone     The zone the service is enabled for"
                     echo "    service  The service to list acls for"
                     echo
                     exit 1
@@ -1069,9 +1069,9 @@ case $mode in
                 echo
                 echo "usage: $myname $mode { add | clear | delete | list }"
                 echo
-                echo "    add     Add an acl for a service"
-                echo "    clear   Clear acl for a service"
-                echo "    delete  Delete an acl for a servive"
+                echo "    add     Add an ACL for a service"
+                echo "    clear   Clear ACL for a service"
+                echo "    delete  Delete an ACL for a servive"
                 echo "    edit    Launch an editor to manually edit ACL entires for a service"
                 echo "    show    Show ACL for a service"
                 echo
