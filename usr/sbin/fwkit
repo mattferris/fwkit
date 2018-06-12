@@ -379,15 +379,12 @@ case $mode in
                 ;;
 
             *)
-                echo
-                echo "usage: $myname rules { clean | compile | load | reload | unload }"
-                echo
+                echo "\nusage: $myname rules { clean | compile | load | reload | unload }\n"
                 echo "    clean   Clear the cached ruleset"
                 echo "    compile Compile the rules but don't load them"
                 echo "    load    Load the ruleset (compile if cached rules aren't available)"
                 echo "    reload  Unload, clean, and load the ruleset"
-                echo "    unload  Cached the loaded ruleset and unload it"
-                echo
+                echo "    unload  Cached the loaded ruleset and unload it\n"
                 exit 1
                 ;;
 
@@ -412,13 +409,10 @@ case $mode in
                 desc=$5
 
                 if [ -z "$role" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name> <policy> <description>"
-                    echo
+                    echo "\nusage: $myname $mode $action <name> <policy> <description>\n"
                     echo "    name         The name of the role to create"
                     echo "    policy       The default packet policy of the role (allow or deny)"
-                    echo "    description  An optional description for the new role"
-                    echo
+                    echo "    description  An optional description for the new role\n"
                     exit 1
                 fi
 
@@ -450,11 +444,8 @@ case $mode in
             set)
                 newrole=$3
                 if [ -z "$newrole" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name>"
-                    echo
-                    echo "    name  The name of the role to promote to the active role"
-                    echo
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name  The name of the role to promote to the active role\n"
                     exit 1
                 fi
 
@@ -486,11 +477,8 @@ case $mode in
                 role=$3
 
                 if [ -z "$role" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name>"
-                    echo
-                    echo "    name  The name of the role to undefine (delete)"
-                    echo
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name  The name of the role to undefine (delete)\n"
                     exit 1
                 fi
 
@@ -502,15 +490,12 @@ case $mode in
                 ;;
 
             *)
-                echo
-                echo "usage: $myname role { define | get | list | set | undefine }"
-                echo
+                echo "\nusage: $myname role { define | get | list | set | undefine }\n"
                 echo "    define    Define a new role"
                 echo "    get       Get the current role"
                 echo "    list      List available roles"
                 echo "    set       Set the current role"
-                echo "    undefine  Undefine (delete) an existing role"
-                echo
+                echo "    undefine  Undefine (delete) an existing role\n"
                 exit 1
                 ;;
 
@@ -529,13 +514,10 @@ case $mode in
                 service=$4
 
                 if [ -z "$type" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <type> [<zone>:]<service> [ ... ]"
-                    echo
+                    echo "\nusage: $myname $mode $action <type> [<zone>:]<service> [ ... ]\n"
                     echo "    type     The type of service, local or remote"
                     echo "    zone     Optional zone to disable the service for (if not specified, assumes 'default' zone)"
-                    echo "    service  The service to disable"
-                    echo
+                    echo "    service  The service to disable\n"
                     exit 1
                 fi
 
@@ -589,13 +571,10 @@ case $mode in
                 service=$4
 
                 if [ -z "$type" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <type> [<zone>:]<service> [ ... ]"
-                    echo
+                    echo "\nusage: $myname $mode $action <type> [<zone>:]<service> [ ... ]\n"
                     echo "    type     The type of service, local or remote"
                     echo "    zone     Optional zone to enable the service for (if not specified, assumes 'default' zone)"
-                    echo "    service  The service to enable"
-                    echo
+                    echo "    service  The service to enable\n"
                     exit 1
                 fi
 
@@ -717,13 +696,10 @@ case $mode in
                 ;;
 
             *)
-                echo
-                echo "usage: $myname service { disable | enable | list }"
-                echo
+                echo "\nusage: $myname service { disable | enable | list }\n"
                 echo "    disable Disable a service"
                 echo "    enable  Enable a service"
-                echo "    list    List available services"
-                echo
+                echo "    list    List available services\n"
                 ;;
 
         esac
@@ -741,12 +717,9 @@ case $mode in
                 value=$4
 
                 if [ -z "$name" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <variable> <value>"
-                    echo
+                    echo "\nusage: $myname $mode $action <variable> <value>\n"
                     echo "    variable  The name of the variable to set"
-                    echo "    value     The value of the variable"
-                    echo
+                    echo "    value     The value of the variable\n"
                     exit 1
                 fi
 
@@ -787,11 +760,8 @@ case $mode in
                 name=$3
 
                 if [ -z "$name" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <variable>"
-                    echo
-                    echo "    variable  The name of the variable to unset"
-                    echo
+                    echo "\nusage: $myname $mode $action <variable>\n"
+                    echo "    variable  The name of the variable to unset\n"
                     exit 1
                 fi
 
@@ -803,13 +773,10 @@ case $mode in
                 ;;
 
             *)
-                echo
-                echo "usage: $myname config { get | set | unset }"
-                echo
+                echo "\nusage: $myname config { get | set | unset }\n"
                 echo "    get    Get the value of a specific setting, or all settings"
                 echo "    set    Set the value of a setting"
-                echo "    unset  Delete a setting"
-                echo
+                echo "    unset  Delete a setting\n"
                 exit 1
                 ;;
 
@@ -830,13 +797,10 @@ case $mode in
                 zonedir="$etcdir/role.active/zones/$zone"
 
                 if [ -z "$zone" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name> <source> [ <description> ]"
-                    echo
+                    echo "\nusage: $myname $mode $action <name> <source> [ <description> ]\n"
                     echo "    name         The name of the zone to define"
                     echo "    source       The source host/network address of the zone"
-                    echo "    description  Optional description for the zone"
-                    echo
+                    echo "    description  Optional description for the zone\n"
                     exit 1
                 fi
 
@@ -880,11 +844,8 @@ case $mode in
                 zonedir="$etcdir/role.active/zones/$zone"
 
                 if [ -z "$zone" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name>"
-                    echo
-                    echo "    name The name of the zone to undefine (delete)"
-                    echo
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name The name of the zone to undefine (delete)\n"
                     exit 1
                 fi
 
@@ -896,13 +857,10 @@ case $mode in
                 ;;
 
             *)
-                echo
-                echo "usage: $myname $mode { define | list | undefine }"
-                echo
+                echo "\nusage: $myname $mode { define | list | undefine }\n"
                 echo "    define    Define a new zone"
                 echo "    list      Get a list of all zones for the current roll"
-                echo "    undefine  Undefine (delete) an existing zone"
-                echo
+                echo "    undefine  Undefine (delete) an existing zone\n"
                 exit 1
                 ;;
 
@@ -927,13 +885,10 @@ case $mode in
                 description=$8
 
                 if [ -z "$source" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source> [ <description> ]"
-                    echo
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source> [ <description> ]\n"
                     echo "    zone     The zone the service is enable for"
                     echo "    service  The service to apply the ACL to"
-                    echo "    source   The host or network address"
-                    echo
+                    echo "    source   The host or network address\n"
                     exit 1
                 fi
 
@@ -952,12 +907,9 @@ case $mode in
 
             clear)
                 if [ -z "$service" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
-                    echo
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service>\n"
                     echo "    zone     The zone the service is enabled for"
-                    echo "    service  The service to apply the acl to"
-                    echo
+                    echo "    service  The service to apply the acl to\n"
                     exit 1
                 fi
  
@@ -974,13 +926,10 @@ case $mode in
                 source=$7
 
                 if [ -z "$source" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source>"
-                    echo
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source>\n"
                     echo "    zone     The zone the service is enabled for"
                     echo "    service  The service to apply the ACL to"
-                    echo "    source   The host or network address"
-                    echo
+                    echo "    source   The host or network address\n"
                     exit 1
                 fi
 
@@ -994,12 +943,9 @@ case $mode in
 
             edit)
                 if [ -z "$service" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
-                    echo
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service>\n"
                     echo "    zone     The zone the service is enabled for"
-                    echo "    service  The service to list ACLs for"
-                    echo
+                    echo "    service  The service to list ACLs for\n"
                     exit 1
                 fi
 
@@ -1012,12 +958,9 @@ case $mode in
                 defaction=$6
 
                 if [ -z "$defaction" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny }"
-                    echo
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service> { allow | deny }\n"
                     echo "    zone     The zone the service is enabled for"
-                    echo "    service  The service to apply the ACL to"
-                    echo
+                    echo "    service  The service to apply the ACL to\n"
                     exit 1
                 fi
 
@@ -1037,12 +980,9 @@ case $mode in
 
             show)
                 if [ -z "$service" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
-                    echo
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service>\n"
                     echo "    zone     The zone the service is enabled for"
-                    echo "    service  The service to list acls for"
-                    echo
+                    echo "    service  The service to list acls for\n"
                     exit 1
                 fi
 
@@ -1051,8 +991,7 @@ case $mode in
                 # does service have an acl
                 [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
 
-                echo
-                echo "ACLS FOR $zone/$location/$service"
+                echo "\nACLS FOR $zone/$location/$service"
                 printf '\n%-7s%-45s%s\n\n' "Action" "Source" "Description"
                 echo $(grep -v -e '^default' "$servfile.acl") | { while read line; do
                     aclaction=$(echo $line | awk '{print $1}')
@@ -1060,21 +999,16 @@ case $mode in
                     description=$(echo $line | awk '{$1=$2=""; print $0}' | sed -r 's/^\s+//')
                     printf '%-7s%-45s%s\n' "$aclaction" "$source" "$description"
                 done } 
-                echo
-                echo Default action: $(head -n1 $servfile.acl | cut -d\  -f2)
-                echo
+                echo "\nDefault action: $(head -n1 $servfile.acl | cut -d\  -f2)\n"
                 ;;
 
             *)
-                echo
-                echo "usage: $myname $mode { add | clear | delete | list }"
-                echo
+                echo "\nusage: $myname $mode { add | clear | delete | list }\n"
                 echo "    add     Add an ACL for a service"
                 echo "    clear   Clear ACL for a service"
                 echo "    delete  Delete an ACL for a servive"
                 echo "    edit    Launch an editor to manually edit ACL entires for a service"
-                echo "    show    Show ACL for a service"
-                echo
+                echo "    show    Show ACL for a service\n"
                 exit 1
                 ;;
 
