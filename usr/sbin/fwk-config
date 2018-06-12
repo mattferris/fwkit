@@ -1,0 +1,105 @@
+#!/bin/bash
+
+action=$1
+
+_err() {
+    code=$1
+    msg=$2
+    echo "$msg" 1>&2
+    exit $code
+}
+
+confload() {
+    type=$1
+    prefix=$2
+    cmd=$3
+    for i in $(find "conf/$type" -type f); do
+        name=$(basename $i)
+        eval "export $prefix$name=\"$(cat $i)\""
+    done
+    if [ ! -z "$cmd" ]; then
+        if [ ! -x "$cmd" ]; then
+            _err 1 "error: unable to execute command: $cmd"
+        fi
+        shift; shift
+        exec $@
+    fi
+}
+
+confload core core_
+
+if [ -z "$action" ]; then
+    my=$(basename $0)
+    cat <<EOF
+usage:
+    $me delete <name>
+    $me exec <cmd>
+    $me list
+    $me read <name>
+    $me write <name>
+EOF
+    exit 1
+fi
+
+case $action in
+
+    delete)
+        name=$2
+
+        if [ ! -f "conf/$(echo $name | tr . /)" ]; then
+            _err 2 "error: variable has't been defined: $name"
+        fi
+
+        rm "conf/$(echo $name | tr . /)"
+        ;;
+
+    exec)
+        shift
+        confload vars "" $@
+        ;;
+
+    list)
+        prelen=$(echo -n "conf/" | wc -c)
+        let prelen=prelen+1
+        for i in $(find conf -type f); do
+            name=$(echo $i | cut -b${prelen}- | sed 's/\//./g')
+            echo "$name = $(head -n1 $i)"
+        done
+        ;;
+
+    read)
+        name=$2
+
+        if [ ! -f "conf/$(echo $name | tr . /)" ]; then
+            _err 2 "error: variable hasn't been defined: $name"
+        else
+            cat "conf/$(echo $name | tr . /)"
+        fi
+        ;;
+
+    write)
+        name=$2
+
+        path=$(echo $name | tr . /)
+        type=$(echo $name | cut -d. -f1)
+
+        if [ -z "$(echo $type | grep -e 'vars' -e 'core')" ]; then
+            _err 1 "error: invalid variable prefix: $type"
+        fi
+
+        mkdir -p "conf/$(dirname $path)"
+
+        if [ -f "conf/$path.new" ]; then
+            rm "conf/$path.new"
+        fi
+
+        while read line; do
+            echo "$line" >> "conf/$path.new"
+        done
+
+        mv "conf/$path.new" "conf/$path"
+        ;;
+
+    *)
+        _err 1 "error: invalid action: $action"
+esac
