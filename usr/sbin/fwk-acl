@@ -90,7 +90,7 @@ case $action in
         ;;
 
     *)
-        _err 1 "error: bad option: $action"
+        _err 1 "error: invalid action specified: $action"
         ;;
 esac
 

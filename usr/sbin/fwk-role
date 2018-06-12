@@ -88,7 +88,7 @@ case $action in
         ;;
 
     *)
-        _err 1 "error: unknown action specified: $action"
+        _err 1 "error: invalid action specified: $action"
         ;;
 
 esac
