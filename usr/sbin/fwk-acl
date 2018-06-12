@@ -1,0 +1,96 @@
+#!/bin/bash
+
+action=$1
+name=$2
+path="$PWD/role.active/acls"
+
+_err() {
+    code=$1
+    msg=$2
+    echo "$msg" 1>&2
+    exit $code
+}
+
+if [ -z "$action" ]; then
+    me=$(basename $0)
+    cat <<EOF 1>&2
+usage:
+    $me delete <name>
+    $me list
+    $me path <name>
+    $me read <name>
+    $me write <name { allow | deny }
+EOF
+    exit 1
+fi
+
+if [ ! -d "$path" ]; then
+    _err 2 "error: ACL path doesn't exist: $path"
+fi
+
+case $action in
+    delete)
+        if [ -z "$name" ]; then
+            _err 1 "error: no ACL name specified"
+        fi
+
+        if [ ! -f "$path/$name" ]; then
+            _err 2 "error: ACL file doesn't exist: $path/$name"
+        fi
+        rm "$path/$name"
+        ;;
+
+    list)
+        ls -1 "$path"
+        ;;
+
+    path)
+        if [ -z "$name" ]; then
+            _err 1 "error: no ACL name specified"
+        fi
+
+        if [ ! -f "$path/$name" ]; then
+            _err 2 "error: ACL file doesn't exist: $path/$name"
+        fi
+        echo "$path/$name"
+        ;;
+
+    read)
+        if [ -z "$name" ]; then
+            _err 1 "error: no ACL name specified"
+        fi
+
+        if [ ! -f "$path/$name" ]; then
+            _err 2 "error: ACL file doesn't exist: $path/$name"
+        fi
+        cat "$path/$name"
+        ;;
+
+    write)
+        if [ -z "$name" ]; then
+            _err 1 "error: no ACL name specified"
+        fi
+
+        defaction=$3
+        if [ -z "$defaction" ]; then
+            _err 1 "error: no default action supplied for ACL"
+        fi
+
+        if [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ]; then
+            _err 1 "error: invalid default action supplied for ACL: $defaction"
+        fi
+
+        echo "default $defaction" > "$path/$name.new"
+
+        while read line; do
+            echo "$line" >> "$path/$name.new"
+        done
+
+        mv "$path/$name.new" "$path/$name"
+        ;;
+
+    *)
+        _err 1 "error: bad option: $action"
+        ;;
+esac
+
