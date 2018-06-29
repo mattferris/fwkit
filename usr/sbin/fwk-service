@@ -16,12 +16,13 @@ if [ -z "$1" ]; then
     me=$(basename $0)
     cat <<EOF 1>&2
 usage:
-    $me acl
+    $me acl <zone> <location> <name>
     $me add <zone> <location> <name> [ <file> ]
     $me apply <zone> <location> <name> <aclname>
     $me clear <zone> <location> <name>
     $me delete <zone> <location> <name>
     $me list <zone> [ <location> ]
+    $me path <zone> <location> <name>
 EOF
     exit 1
 fi
@@ -94,11 +95,17 @@ case $action in
             _err 2 "error: service hasn't been added: $zone.$location.$name"
         fi
 
-        if [ ! -f "$path/$name.service.acl" ]; then
+        aclpath="$path/$name.service.acl"
+        if [ ! -e "$aclpath" ]; then
             _err 2 "error: no ACL defined for service: $zone.$location.$name"
         fi
 
-        echo $(basename $(readlink "$path/$name.service.acl"))
+        if [ -h "$aclpath" ]; then
+            basename $(readlink "$aclpath")
+        else
+            echo "warning: deprecated ACL for $location service '$name' in zone '$zone'" >&2
+            realpath "$aclpath"
+        fi
         ;;
 
     add)
@@ -223,6 +230,20 @@ case $action in
         fi
 
         (cd "$path" && find -name "*.service" \( -type f -o -type l \) -printf "%P\n" | sed -e 's/\.service//' -e 's/\//./')
+        ;;
+
+    path)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        path="$path/services"
+
+        chklocation $location
+        chkname $name
+
+        echo "$path/services/$location/$name.service"
         ;;
 
     *)

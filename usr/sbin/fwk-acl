@@ -60,6 +60,11 @@ case $action in
             _err 1 "error: no ACL name specified"
         fi
 
+        if [ ! "$(basename $name)" = "$name" -a -f "$name" ]; then
+            echo "warning: deprecated ACL '$name'" >&2
+            cat "$name"
+        fi
+
         if [ ! -f "$path/$name" ]; then
             _err 2 "error: ACL file doesn't exist: $path/$name"
         fi

@@ -1,0 +1,229 @@
+#!/bin/bash
+
+confload() {
+    type=$1
+    prefix=$2
+    for i in $(find "conf/$type" -type f); do
+        name=$(basename $i)
+        eval "export $prefix$name=\"$(cat $i)\""
+    done
+}
+
+confenv() {
+    type=$1
+    prefix=$2
+    for i in $(find "conf/$type" -type f); do
+        name=$(basename $i)
+        value=$(eval echo $(cat $i))
+        echo -n "$prefix$name=$value "
+    done
+}
+
+_err() {
+    code=$1
+    msg=$2
+    echo "$msg" 1>&2
+    exit $code
+}
+
+dozone() {
+    name=$1
+    zlcn=$(chainname $zone local)
+    zrcn=$(chainname $zone remote)
+
+    echo "iptables -N $zlcn"
+    echo "ip6tables -N $zlcn"
+    echo "iptables -N $zrcn"
+    echo "ip6tables -N $zrcn"
+
+    echo "iptables -F $zlcn" 1>&2
+    echo "ip6tables -F $zlcn" 1>&2
+    echo "iptables -F $zrcn" 1>&2
+    echo "ip6tables -F $zrcn" 1>&2
+
+    echo "iptables -X $zlcn" 1>&2
+    echo "ip6tables -X $zlcn" 1>&2
+    echo "iptables -X $zrcn" 1>&2
+    echo "ip6tables -X $zrcn" 1>&2
+}
+
+doservice() {
+    zone=$1
+    location=$2
+    service=$3
+    servfile=$(fwk-service path "$zone" "$location" "$service")
+
+    echo "\n#\n# $i\n#\n"
+    if [ -x "$servfile" ]; then
+        "$servfile" $zone $location
+    else
+        cat "$servfile"
+    fi
+    doacl $zone $location $service
+
+    slcn=$(chainname $zone $location $service)
+    srcn=$(chainname $zone $location $service)
+
+    echo "iptables -F $slcn" 1>&2
+    echo "ip6tables -F $slcn" 1>&2
+    echo "iptables -F $srcn" 1>&2
+    echo "ip6tables -F $srcn" 1>&2
+
+    echo "iptables -X $slcn" 1>&2
+    echo "ip6tables -X $slcn" 1>&2
+    echo "iptables -X $srcn" 1>&2
+    echo "ip6tables -X $srcn" 1>&2
+}
+
+doacl() {
+    zone=$1
+    location=$2
+    service=$3
+
+    aclname=$(fwk-service acl $zone $location $service)
+    chain=$(chainname $zone $location $service)
+
+    if [ ! -z "$aclname" ]; then
+        defaction=""
+        fwk-acl read $aclname | {
+            read defline
+            defaction=$(echo "$defline" | cut -d\  -f2)
+
+            while read line; do
+            action=$(echo $line | cut -d\  -f1)
+            source=$(echo $line | cut -d\  -f2)
+            cmt=$(echo $line | cut -d\  -f3-)
+            negated=""
+            if [ ! -z $(echo $source | grep -e '^!') ]; then
+                negated="'!'"
+                source=$(echo $source | cut -b2-)
+            fi
+            target="DROP"
+            cmd="iptables"
+            [ "allow" = "$action" ] && target="ACCEPT"
+            [ ! -z $(echo $source | grep ':') ] && cmd="ip6tables"
+            [ ! -z "$cmt" ] && cmt="-m comment --comment \"$cmt\""
+            echo "$cmd -A $chain $negated -s $source $cmt -j $target"
+        done }
+
+        target=DROP
+        [ "allow" = "$defaction" ] && target="ACCEPT"
+        echo "iptables -A $chain -s 0.0.0.0/0 -j $target"
+        echo "ip6tables -A $chain -s ::0/0 -j $target"
+
+    else
+        echo "iptables -A $chain -s 0.0.0.0/0 -j ACCEPT"
+        echo "ip6tables -A $chain -s ::0/0 -j ACCEPT"
+    fi
+}
+
+chainname() {
+    zone=$1
+    location=$2
+    service=$(echo $3 | tr - _)
+    chain="fwk_$zone"
+    [ ! -z "$location" ] && chain="${chain}_$(echo $location | cut -b1)"
+    [ ! -z "$service" ] && chain="${chain}_${service}"
+    echo $chain
+}
+
+confload core core_
+
+if { ! echo -n '' >&3; } 2>/dev/null; then
+    _err 1 "missing file descriptor for unload rules (fd 3)"
+fi
+
+if [ ! -e "role.active" ]; then
+    _err 1 "no role specified"
+fi
+
+# include role policy if it exists
+policy="role.active/policy"
+if [ -f "$policy.rules" ]; then
+    echo "#\n# $policy.rules\n#\n"
+    cat "$policy.rules"
+elif [ -f "$policy" ]; then
+    echo "#\n# $policy\n#\n"
+    polaction=$(cat "$policy")
+    if [ "$polaction" = "allow" ]; then
+        polaction="ACCEPT"
+    else
+        polaction="DROP"
+        echo "iptables -P INPUT ACCEPT" >&3
+        echo "iptables -P OUTPUT ACCEPT" >&3
+        echo "ip6tables -P INPUT ACCEPT" >&3
+        echo "ip6tables -P OUTPUT ACCEPT" >&3
+    fi
+    echo "iptables -P INPUT $polaction"
+    echo "iptables -P OUTPUT $polaction"
+    echo "ip6tables -P INPUT $polaction"
+    echo "ip6tables -P OUTPUT $polaction"
+fi
+
+# custom unload rules
+if [ -d "rules.d/unload" ]; then
+    for i in $( find "rules.d/unload" -name "*.rules" ); do
+        echo "\n#\n# $i\n#\n" >&3
+        cat "$i" >&3
+    done
+fi
+
+# include pre-service rules
+if [ -d "rules.d/pre" ]; then
+    for i in $( find "rules.d/pre" -name "*.rules" ); do
+        echo "\n#\n# $i\n#\n"
+        cat "$i"
+    done
+fi
+
+# process zones
+for zone in $(fwk-zone list); do
+    zonedir=$(fwk-zone path "$zone")
+
+    if [ ! -d "$zonedir" ]; then
+        continue;
+    fi
+
+    echo "\n##\n## zone: $zone\n##\n"
+    dozone $zone 2>&3
+
+    if [ ! -f "$zonedir/sources" ]; then
+        _err 1 "no sources defined for zone '$zone'"
+    fi
+
+    fwk-zone src-read "$zone" | {
+        while read i; do
+            cmd=""
+            if [ -z "$i" ]; then
+                continue;
+            fi
+            if [ -z $(echo $i | grep -e ':') ]; then
+                cmd="iptables"
+            else
+                cmd="ip6tables"
+            fi
+            echo "$cmd -A INPUT -s $i -j $zlcn"
+            echo "$cmd -D INPUT -s $i -j $zlcn" >&3
+            echo "$cmd -A OUTPUT -d $i -j $zrcn"
+            echo "$cmd -D OUTPUT -d $i -j $zrcn" >&3
+        done
+    }
+
+    # include local service rules
+    for i in $(fwk-service list "$zone" local); do 
+        doservice $zone local $i 2>&3
+    done
+
+    # include remote service rules
+     for i in $(fwk-service list "$zone" remote); do
+        doservice $zone remote $i 2>&3
+    done
+done
+
+# include post-service rules
+if [ -d "rules.d/post" ]; then
+    for i in $( find "rules.d/post" -name "*.rules" ); do
+        echo "\n#\n# $i\n#\n"
+        cat "$i"
+    done
+fi
