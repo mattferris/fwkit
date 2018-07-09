@@ -13,16 +13,30 @@ confload() {
     type=$1
     prefix=$2
     cmd=$3
+    envstr=""
     for i in $(find "conf/$type" -type f); do
         name=$(basename $i)
         eval "export $prefix$name=\"$(cat $i)\""
+        envstr="$envstr $prefix$name=\"$(cat $i)\""
     done
     if [ ! -z "$cmd" ]; then
         if [ ! -x "$cmd" ]; then
             _err 1 "error: unable to execute command: $cmd"
         fi
+
+        envstr="$envstr PATH=\"$PATH\""
+        if [ ! -z "$FWKIT_ETCDIR" ]; then
+            envstr="$envstr FWKIT_ETCDIR=\"$FWKIT_ETCDIR\""
+        fi
+        if [ ! -z "$FWKIT_LIBDIR" ]; then
+            envstr="$envstr FWKIT_LIBDIR=\"$FWKIT_LIBDIR\""
+        fi
+        if [ ! -z "$fwkit" ]; then
+            envstr="$envstr fwkit=\"$fwkit\""
+        fi
+
         shift; shift
-        exec $@
+        ( env - $envstr /bin/bash -c "exec $@" )
     fi
 }
 
