@@ -65,6 +65,17 @@ chkname() {
     fi
 }
 
+# check path exists, and create it if it doesn't
+chkpath() {
+    path=$1
+
+    if [ ! -d "$path" ]; then
+        if ! ( mkdir -p "$path" ); then
+            _err 1 "error: failed to create service path: $path"
+        fi
+    fi
+}
+
 # check if service is enabled
 srvenabled() {
     path=$1
@@ -124,6 +135,8 @@ case $action in
             _err 2 "error: service already added: $zone.$location.$name"
         fi
 
+        chkpath "$path"
+
         file=$5
         srvfile="$path/$name.service"
         if [ -z "$file" ]; then
@@ -160,6 +173,8 @@ case $action in
         if [ $? = 1 ]; then
             _err 2 "error: service already added: $zone.$location.$name"
         fi
+
+        chkpath "$path"
 
         if [ -h "$path/$name.service.acl" ]; then
             rm "$path/$name.service.acl"
@@ -228,6 +243,8 @@ case $action in
             chklocation $location
             path="$path/$location"
         fi
+
+        chkpath "$path"
 
         (cd "$path" && find -name "*.service" \( -type f -o -type l \) -printf "%P\n" | sed -e 's/\.service//' -e 's/\//./')
         ;;

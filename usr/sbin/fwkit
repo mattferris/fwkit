@@ -315,19 +315,8 @@ case $mode in
                         service=$(echo $service | cut -d: -f2)
                     fi
 
-                    if [ ! -f "$etcdir/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service doesn't exist"
-                    fi
+                    fwk-service delete "$zone" "$type" "$service"
 
-                    if [ ! -d "$etcdir/role.active/zones/$zone/services/$type" ]; then
-                        doerror 1 "directory $etcdir/role.active/zones/$zone/services/$type doesn't exist"
-                    fi
-
-                    if [ ! -h "$etcdir/role.active/zones/$zone/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service already disabled for zone $zone"
-                    fi
-
-                    rm "$etcdir/role.active/zones/$zone/services/$type/$service.service"
                     services="$services $service"
 
                 done
@@ -372,22 +361,7 @@ case $mode in
                         service=$(echo $service | cut -d: -f2)
                     fi
 
-                    if [ ! -f "$etcdir/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service doesn't exist"
-                    fi
-
-                    if [ ! -d "$etcdir/role.active/zones/$zone/services/$type" ]; then
-                        doerror 1 "directory $etcdir/role.active/zones/$zone/services/$type doesn't exist"
-                    fi
-
-                    if [ -h "$etcdir/role.active/zones/$zone/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service already enabled for zone $zone"
-                    fi
-
-                    ln -s "$etcdir/services/$type/$service.service" "$etcdir/role.active/zones/$zone/services/$type" > /dev/null 2>&1
-                    if [ ! $? = 0 ]; then
-                      doerror 1 "failed to enable $type service $service: encountered error while creating symlink"
-                    fi
+                    fwk-service add "$zone" "$location" "$service" < "$etcdir/services/$type/$service.service"
 
                     services="$services $service"
 
@@ -413,7 +387,7 @@ case $mode in
                 printf '%-7s%-15s%s\n\n' Active Name Description
 
                 for i in $( find "$etcdir/services/local/" -type f -printf "%P\n" | sort ); do
-                    if [ -h "$etcdir/role.active/zones/$zone/services/local/$i" ]; then
+                    if [ -e "$etcdir/role.active/zones/$zone/services/local/$i" ]; then
                         printf '%7s' '* '
                     else
                         echo -n "       "
