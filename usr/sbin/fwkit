@@ -470,32 +470,16 @@ case $mode in
                     doerror 1 "config value must be specified"
                 fi
 
-                path=$(echo $name | tr . /)
-                type=$(echo $name | cut -d. -f1)
-
-                if [ -z "$(echo $type | grep -e 'vars' -e 'core')" ]; then
-                    doerror 1 "setting prefix must be 'core' or 'vars'"
-                fi
-
-                mkdir -p "$etcdir/conf/$(dirname $path)"
-                echo "$value" > "$etcdir/conf/$path"
+                echo "$value" | fwk-config "$name"
                 ;;
 
             get)
                 name=$3
 
                 if [ -z "$name" ]; then
-                    (
-                        cd "$etcdir/conf"
-                        for f in $(find . -type f); do
-                            path=$(echo $f | cut -b3-)
-                            echo $(echo $path | tr / .) = $(cat $f)
-                        done
-                    )
-                elif [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
-                    doerror 1 "setting doesn't exist '$name'"
+                    fwk-config list
                 else
-                    cat "$etcdir/conf/$(echo $name | tr . /)"
+                    fwk-config read "$name"
                 fi
                 ;;
 
@@ -508,11 +492,7 @@ case $mode in
                     exit 1
                 fi
 
-                if [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
-                    doerror 1 "setting doesn't exist '$name'"
-                fi
-
-                rm "$etcdir/conf/$(echo $name | tr . /)"
+                fwk-config delete "$name"
                 ;;
 
             *)

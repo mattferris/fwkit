@@ -61,7 +61,7 @@ case $action in
         name=$2
 
         if [ ! -f "conf/$(echo $name | tr . /)" ]; then
-            _err 2 "error: variable has't been defined: $name"
+            _err 2 "error: variable hasn't been defined: $name"
         fi
 
         rm "conf/$(echo $name | tr . /)"
