@@ -517,7 +517,6 @@ case $mode in
                 zone=$3
                 source=$4
                 desc=$5
-                zonedir="$etcdir/role.active/zones/$zone"
 
                 if [ -z "$zone" ]; then
                     echo "\nusage: $myname $mode $action <name> <source> [ <description> ]\n"
@@ -527,28 +526,12 @@ case $mode in
                     exit 1
                 fi
 
-                if [ -d "$zonedir" ]; then
-                    doerror 1 "zone already defined '$zone'"
-                fi
-
-                if [ -z "$source" ]; then
-                    doerror 1 "zone must define a source address/network"
-                fi
-
-                mkdir -p "$zonedir/services/local" "$zonedir/services/remote"
-
-                for src in $(echo $source); do
-                    echo "$src" >> "$zonedir/sources"
-                done
-
-                if [ ! -z "$desc" ]; then
-                    echo "$desc" > "$zonedir/description"
-                fi
+                echo "$source" | fwk-zone define "$zone" "$description"
                 ;;
 
             list)
                 printf '  %-15s%-30s%s\n' "Zone Name" "Description" "Source(s)"
-                for zone in $(ls -1 "$etcdir/role.active/zones"); do
+                for zone in $(fwk-zone list); do
                     zonedir="$etcdir/role.active/zones/$zone"
                     src=""
                     if [ -f "$zonedir/sources" ]; then
@@ -564,7 +547,6 @@ case $mode in
 
             undefine)
                 zone=$3
-                zonedir="$etcdir/role.active/zones/$zone"
 
                 if [ -z "$zone" ]; then
                     echo "\nusage: $myname $mode $action <name>\n"
@@ -572,11 +554,7 @@ case $mode in
                     exit 1
                 fi
 
-                if [ ! -d "$zonedir" ]; then
-                    doerror 1 "zone hasn't been defined '$zone'"
-                fi
-
-                rm -r "$zonedir"
+                fwk-zone undefine "$zone"
                 ;;
 
             *)
