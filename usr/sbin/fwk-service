@@ -255,8 +255,6 @@ case $action in
             exit 1
         fi
 
-        path="$path/services"
-
         chklocation $location
         chkname $name
 
