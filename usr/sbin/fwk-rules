@@ -53,7 +53,7 @@ doservice() {
     service=$3
     servfile=$(fwk-service path "$zone" "$location" "$service")
 
-    echo "\n#\n# $i\n#\n"
+    echo -e "\n#\n# $i\n#\n"
     if [ -x "$servfile" ]; then
         "$servfile" $zone $location
     else
@@ -140,10 +140,10 @@ fi
 # include role policy if it exists
 policy="role.active/policy"
 if [ -f "$policy.rules" ]; then
-    echo "#\n# $policy.rules\n#\n"
+    echo -e "#\n# $policy.rules\n#\n"
     cat "$policy.rules"
 elif [ -f "$policy" ]; then
-    echo "#\n# $policy\n#\n"
+    echo -e "#\n# $policy\n#\n"
     polaction=$(cat "$policy")
     if [ "$polaction" = "allow" ]; then
         polaction="ACCEPT"
@@ -163,7 +163,7 @@ fi
 # custom unload rules
 if [ -d "rules.d/unload" ]; then
     for i in $( find "rules.d/unload" -name "*.rules" ); do
-        echo "\n#\n# $i\n#\n" >&3
+        echo -e "\n#\n# $i\n#\n" >&3
         cat "$i" >&3
     done
 fi
@@ -171,7 +171,7 @@ fi
 # include pre-service rules
 if [ -d "rules.d/pre" ]; then
     for i in $( find "rules.d/pre" -name "*.rules" ); do
-        echo "\n#\n# $i\n#\n"
+        echo -e "\n#\n# $i\n#\n"
         cat "$i"
     done
 fi
@@ -184,7 +184,7 @@ for zone in $(fwk-zone list); do
         continue;
     fi
 
-    echo "\n##\n## zone: $zone\n##\n"
+    echo -e "\n##\n## zone: $zone\n##\n"
     dozone $zone 2>&3
 
     if [ ! -f "$zonedir/sources" ]; then
@@ -223,7 +223,7 @@ done
 # include post-service rules
 if [ -d "rules.d/post" ]; then
     for i in $( find "rules.d/post" -name "*.rules" ); do
-        echo "\n#\n# $i\n#\n"
+        echo -e "\n#\n# $i\n#\n"
         cat "$i"
     done
 fi
