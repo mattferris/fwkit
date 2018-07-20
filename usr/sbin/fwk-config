@@ -40,6 +40,10 @@ confload() {
     fi
 }
 
+if [ ! -d "conf/" ]; then
+    _err 2 "error: can't locate configuration directory: $PWD/conf"
+fi
+
 confload core core_
 
 if [ -z "$action" ]; then
