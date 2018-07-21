@@ -73,7 +73,7 @@ case $mode in
 
                 mv "$libdir/compiled.tmp" "$libdir/compiled.rules"
                 mv "$libdir/unload.tmp" "$libdir/unload.rules"
-                chmod +x "$libdir/compiled.tmp" "$libdir/unload.tmp"
+                chmod +x "$libdir/compiled.rules" "$libdir/unload.rules"
 
                 if [ -f "$libdir/cached.rules" ]; then
                     rm "$libdir/cached.rules"
