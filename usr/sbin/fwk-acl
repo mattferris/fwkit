@@ -25,7 +25,7 @@ EOF
 fi
 
 if [ ! -d "$path" ]; then
-    _err 2 "error: ACL path doesn't exist: $path"
+    mkdir -p "$path"
 fi
 
 case $action in
