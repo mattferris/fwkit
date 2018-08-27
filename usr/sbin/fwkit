@@ -189,8 +189,8 @@ case $mode in
                     doerror 1 "role already exists '$role'"
                 fi
 
-                mkdir -p "$etcdir/roles/$role/zones/default/services/local" "$etcdir/roles/$role/zones/default/services/remote"
                 fwk-role define "$role" "$desc"
+                mkdir -p "$etcdir/roles/$role/zones/default/services/local" "$etcdir/roles/$role/zones/default/services/remote"
                 echo "0.0.0.0/0" > "$etcdir/roles/$role/zones/default/sources"
                 echo "$policy" > "$etcdir/roles/$role/policy"
                 echo "$desc" > "$etcdir/roles/$role/description"
