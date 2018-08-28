@@ -1,0 +1,282 @@
+#!/bin/bash
+#
+# fwkit - A modular approach to iptables-based firewall rulesets
+#
+# Copyright (c) 2018 Matt Ferris <matt@bueller.ca>
+# Licensed under BSD 2-clause license
+# github.com/mattferris/fwkit/blob/master/License.txt
+#
+
+action=$1
+zone=$2
+location=$3
+name=$4
+
+_err() {
+    code=$1
+    msg=$2
+    echo "$2" 1>&2
+    exit $code
+}
+
+if [ -z "$1" ]; then
+    me=$(basename $0)
+    cat <<EOF 1>&2
+usage:
+    $me acl <zone> <location> <name>
+    $me add <zone> <location> <name> [ <file> ]
+    $me apply <zone> <location> <name> <aclname>
+    $me clear <zone> <location> <name>
+    $me delete <zone> <location> <name>
+    $me list <zone> [ <location> ]
+    $me path <zone> <location> <name>
+EOF
+    exit 1
+fi
+
+# check zone was specified and exists
+chkzone() {
+    zone=$1
+
+    if [ -z "$zone" ]; then
+        _err 1 "error: no zone specified"
+    fi
+
+    path=$(fwk-zone path "$zone")
+    if [ ! $? = 0 ]; then
+        exit 1
+    fi
+
+    echo $path
+}
+
+# check service location was specified
+chklocation() {
+    location=$1
+
+    if [ -z "$location" ]; then
+        _err 1 "error: no service location specified"
+    fi
+
+    if [ ! "$location" = "local" -a ! "$location" = "remote" ]; then
+        _err 1 "error: invalid service location specified: $location"
+    fi
+}
+
+# check service name was specified and exists
+chkname() {
+    name=$1
+
+    if [ -z "$name" ]; then
+        _err 1 "error: no service name specified"
+    fi
+}
+
+# check path exists, and create it if it doesn't
+chkpath() {
+    path=$1
+
+    if [ ! -d "$path" ]; then
+        if ! ( mkdir -p "$path" ); then
+            _err 1 "error: failed to create service path: $path"
+        fi
+    fi
+}
+
+# check if service is enabled
+srvenabled() {
+    path=$1
+    name=$2
+
+    if [ -f "$path/$name.service" -o -h "$path/$name.service" ]; then
+        return 1
+    fi
+
+    return 0
+}
+
+case $action in
+
+    acl)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        chklocation $location
+        chkname $name
+
+        path="$path/services/$location"
+
+        srvenabled "$path" $name
+        if [ $? = 0 ]; then
+            _err 2 "error: service hasn't been added: $zone.$location.$name"
+        fi
+
+        aclpath="$path/$name.service.acl"
+        if [ ! -e "$aclpath" ]; then
+            _err 2 "error: no ACL defined for service: $zone.$location.$name"
+        fi
+
+        if [ -h "$aclpath" ]; then
+            basename $(readlink "$aclpath")
+        else
+            echo "warning: deprecated ACL for $location service '$name' in zone '$zone'" >&2
+            realpath "$aclpath"
+        fi
+        ;;
+
+    add)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        chklocation $location
+        chkname $name
+
+        path="$path/services/$location"
+
+        srvenabled "$path" $name
+        if [ $? = 1 ]; then
+            _err 2 "error: service already added: $zone.$location.$name"
+        fi
+
+        chkpath "$path"
+
+        file=$5
+        srvfile="$path/$name.service"
+        if [ -z "$file" ]; then
+            if [ -f "$srvfile.new" ]; then
+                rm "$srvfile.new"
+            fi
+
+            while read line; do
+                echo "$line" >> "$srvfile.new"
+            done
+
+            mv "$srvfile.new" "$srvfile"
+        else
+            file=$(realpath "$file")
+            if [ ! -f "$file" ]; then
+                _err 2 "error: cannot link non-existent service file: $file"
+            fi
+            ln -s "$file" "$srvfile"
+        fi
+        ;;
+
+    apply)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        chklocation $location
+        chkname $name
+
+        path="$path/services/$location"
+
+        srvenabled "$path" $name
+        if [ $? = 0 ]; then
+            _err 2 "error: service hasn't been added: $zone.$location.$name"
+        fi
+
+        chkpath "$path"
+
+        if [ -h "$path/$name.service.acl" ]; then
+            rm "$path/$name.service.acl"
+        fi
+
+        aclname=$5
+        aclsrc=$(fwk-acl path "$aclname")
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        ln -s "$aclsrc" "$path/$name.service.acl"
+        ;;
+
+    clear)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        chklocation $location
+        chkname $name
+
+        path="$path/services/$location"
+
+        srvenabled "$path" $name
+        if [ $? = 0 ]; then
+            _err 2 "error: service hasn't been added: $zone.$location.$name"
+        fi
+
+        if [ -h "$path/$name.service.acl" ]; then
+            rm "$path/$name.service.acl"
+        else
+            _err 2 "error: no ACL applied to service: $zone.$location.$name"
+        fi
+        ;;
+
+    delete)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        chklocation $location
+        chkname $name
+
+        path="$path/services/$location"
+
+        srvenabled "$path" $name
+        if [ $? = 0 ]; then
+            _err 2 "error: service hasn't been added: $zone.$location.$name"
+        fi        
+
+        rm "$path/$name.service"
+        ;;
+
+    list)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        path="$path/services"
+
+        if [ ! -z "$location" ]; then
+            chklocation $location
+            path="$path/$location"
+        fi
+
+        chkpath "$path"
+
+        (cd "$path" && find -name "*.service" \( -type f -o -type l \) -printf "%P\n" | sed -e 's/\.service//' -e 's/\//./')
+        ;;
+
+    path)
+        path=$(chkzone $zone)
+        if [ ! $? = 0 ]; then
+            exit 1
+        fi
+
+        chklocation $location
+        chkname $name
+
+        path="$path/services/$location"
+
+        srvenabled "$path" $name
+        if [ $? = 0 ]; then
+            _err 2 "error: service hasn't been added: $zone.$location.$name"
+        fi
+
+        echo "$path/services/$location/$name.service"
+        ;;
+
+    *)
+        _err 1 "error: invalid action specified: $action"
+        ;;
+
+esac

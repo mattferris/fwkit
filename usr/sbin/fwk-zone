@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+# fwkit - A modular approach to iptables-based firewall rulesets
+#
+# Copyright (c) 2018 Matt Ferris <matt@bueller.ca>
+# Licensed under BSD 2-clause license
+# github.com/mattferris/fwkit/blob/master/License.txt
+#
+
+action=$1
+path="role.active/zones"
+
+_err() {
+    code=$1
+    msg=$2
+    echo "$msg" 1>&2
+    exit $code
+}
+
+if [ -z "$action" ]; then
+    me=$(basename $0)
+    cat <<EOF 1>&2
+usage:
+    $me define <name> [ <description> ]
+    $me list
+    $me path <name>
+    $me src-read <name>
+    $me src-write <name>
+    $me undefine <name>
+EOF
+    exit 1
+fi
+
+# check if zone exists
+zoneexists() {
+    path=$1
+    zone=$2
+
+    if [ -z "$zone" ]; then
+        _err 1 "error: no zone specified"
+    fi
+
+    if [ -d "$path/$zone" ]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+case $action in
+
+    define)
+        zone=$2
+        description=$3
+
+        zoneexists "$path" $zone
+        if [ $? = 1 ]; then
+            _err 2 "error: zone already defined: $zone"
+        fi
+
+        mkdir -p "$path/$zone" "$path/$zone/services/local" "$path/$zone/services/remote"
+        echo "$description" > "$path/$zone/description"
+
+        if [ -f "$path/$zone/sources.new" ]; then
+            rm "$path/$zone/sources.new"
+        fi
+
+        while read line; do
+            echo "$line" >> "$path/$zone/sources.new"
+        done
+
+        mv "$path/$zone/sources.new" "$path/$zone/sources"
+        ;;
+
+    list)
+        if [ -f "$path/zoneorder" ]; then
+            cat "$path/zoneorder"
+        else
+            ls -1 "$path"
+        fi
+        ;;
+
+    path)
+        zone=$2
+
+        zoneexists "$path" $zone
+        if [ $? = 0 ]; then
+            _err 2 "error: zone hasn't been defined: $zone"
+        fi
+
+        echo "$path/$zone"
+        ;;
+
+    src-read)
+        zone=$2
+
+        zoneexists "$path" $zone
+        if [ $? = 0 ]; then
+            _err 2 "error: zone hasn't been defined: $zone"
+        fi
+
+        cat "$path/$zone/sources"
+        ;;
+
+    src-write)
+        zone=$2
+
+        zoneexists "$path" $zone
+        if [ $? = 0 ]; then
+            _err 2 "error: zone hasn't been defined: $zone"
+        fi
+
+        if [ -f "$path/$zone/sources.new" ]; then
+            rm "$path/$zone/sources.new"
+        fi
+
+        while read line; do
+            echo "$line" >> "$path/$zone/sources.new"
+        done
+
+        mv "$path/$zone/sources.new" "$path/$zone/sources"
+        ;;
+
+    undefine)
+        zone=$2
+
+        zoneexists "$path" $zone
+        if [ $? = 0 ]; then
+            _err 2 "error: zone hasn't been defined: $zone"
+        fi
+
+        rm -r "$path/$zone"
+        ;;
+
+    *)
+        _err 1 "error: invalid action specified: $action"
+        ;;
+
+esac
