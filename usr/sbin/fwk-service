@@ -177,8 +177,8 @@ case $action in
         path="$path/services/$location"
 
         srvenabled "$path" $name
-        if [ $? = 1 ]; then
-            _err 2 "error: service already added: $zone.$location.$name"
+        if [ $? = 0 ]; then
+            _err 2 "error: service hasn't been added: $zone.$location.$name"
         fi
 
         chkpath "$path"
