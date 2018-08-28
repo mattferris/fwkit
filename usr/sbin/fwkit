@@ -399,7 +399,12 @@ case $mode in
                         service=$(echo $service | cut -d: -f2)
                     fi
 
-                    fwk-service add "$zone" "$type" "$service" < "$etcdir/services/$type/$service.service"
+                    srvfile="$etcdir/services/$type/$service.service"
+                    if [ -x "$srvfile" ]; then
+                        "$srvfile" "$zone" "$type" | fwk-service add "$zone" "$type" "$service"
+                    else
+                        fwk-service add "$zone" "$type" "$service" < "$etcdir/services/$type/$service.service"
+                    fi
 
                     services="$services $service"
 
