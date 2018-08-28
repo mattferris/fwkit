@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# fwkit - A modular approach to iptables-based firewall rulesets
+#
+# Copyright (c) 2018 Matt Ferris <matt@bueller.ca>
+# Licensed under BSD 2-clause license
+# github.com/mattferris/fwkit/blob/master/License.txt
+#
 
 action=$1
 
