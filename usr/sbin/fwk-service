@@ -272,7 +272,7 @@ case $action in
             _err 2 "error: service hasn't been added: $zone.$location.$name"
         fi
 
-        echo "$path/services/$location/$name.service"
+        echo "$path/$name.service"
         ;;
 
     *)
