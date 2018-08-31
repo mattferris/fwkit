@@ -1,6 +1,17 @@
 Changelog
 =========
 
+0.5
+---
+
+* Refactored into plumbing commands (`fwk-*`) and a procelain command (`fwkit`)
+* Service definitions are now copied when enabled instead of symlinked to allow for customization
+* ACLs are now generic, can be applied to multiple services, and support default actions
+* ACL are now modified directly, instead of via the CLI commands
+* Fixed iptables commenting
+* Fixed bugs/typos in service definitions
+* Added service definition for NetBIOS
+
 0.4.1
 -----
 

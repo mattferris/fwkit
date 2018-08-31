@@ -1,0 +1,15 @@
+#!/usr/sbin/fwksrv
+# fwkit - netbios.service - NetBIOS; 137:138/udp, 137:139/tcp
+
+services:
+  netbios:
+    description: NetBIOS
+    connections:
+      -
+        protocol: tcp
+        listen_port: 137:139
+        states: new
+      -
+        protocol: udp
+        listen_port: 137:138
+        states: new

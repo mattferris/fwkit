@@ -6,6 +6,6 @@ services:
     description: Microsoft Global Catalog (Active Directory)
     connections:
       -
-        protocol: 3268
+        protocol: tcp
         listen_port: 3268
         states: new

@@ -1,4 +1,13 @@
 #!/bin/sh
+#
+# fwkit - A modular approach to iptables-based firewall rulesets
+#
+# Copyright (c) 2018 Matt Ferris <matt@bueller.ca>
+# Licensed under BSD 2-clause license
+# github.com/mattferris/fwkit/blob/master/License.txt
+#
+
+version="0.5"
 
 myname=$( basename $0 )
 
@@ -16,25 +25,6 @@ if [ ! -z "$FWKIT_LIBDIR" ]; then
     libdir=$FWKIT_LIBDIR
 fi
 
-confload() {
-    type=$1
-    prefix=$2
-    for i in $(find "$etcdir/conf/$type" -type f); do
-        name=$(basename $i)
-        eval "export $prefix$name=\"$(cat $i)\""
-    done
-}
-
-confenv() {
-    type=$1
-    prefix=$2
-    for i in $(find "$etcdir/conf/$type" -type f); do
-        name=$(basename $i)
-        value=$(eval echo $(cat $i))
-        echo -n "$prefix$name=$value "
-    done
-}
-
 doerror() {
     echo "error: $2" 1>&2
     exit $1
@@ -44,116 +34,16 @@ donotice() {
     echo "notice: $1" 1>&2
 }
 
-dozone() {
-    name=$1
-    zlcn=$(chainname $zone local)
-    zrcn=$(chainname $zone remote)
-
-    echo "iptables -N $zlcn"
-    echo "ip6tables -N $zlcn"
-    echo "iptables -N $zrcn"
-    echo "ip6tables -N $zrcn"
-
-    echo "iptables -F $zlcn" 1>&2
-    echo "ip6tables -F $zlcn" 1>&2
-    echo "iptables -F $zrcn" 1>&2
-    echo "ip6tables -F $zrcn" 1>&2
-
-    echo "iptables -X $zlcn" 1>&2
-    echo "ip6tables -X $zlcn" 1>&2
-    echo "iptables -X $zrcn" 1>&2
-    echo "ip6tables -X $zrcn" 1>&2
-}
-
-doservice() {
-    zone=$1
-    location=$2
-    service=$3
-    servfile="$etcdir/role.active/zones/$zone/services/$location/$service.service"
-
-    echo "\n#\n# $i\n#\n"
-    if [ -x "$servfile" ]; then
-        "$servfile" $zone $location
-    else
-        cat "$servfile"
-    fi
-    doacl $zone $location $service
-
-    slcn=$(chainname $zone $location $service)
-    srcn=$(chainname $zone $location $service)
-
-    echo "iptables -F $slcn" 1>&2
-    echo "ip6tables -F $slcn" 1>&2
-    echo "iptables -F $srcn" 1>&2
-    echo "ip6tables -F $srcn" 1>&2
-
-    echo "iptables -X $slcn" 1>&2
-    echo "ip6tables -X $slcn" 1>&2
-    echo "iptables -X $srcn" 1>&2
-    echo "ip6tables -X $srcn" 1>&2
-}
-
-doacl() {
-    zone=$1
-    location=$2
-    service=$3
-    aclfile="$etcdir/role.active/zones/$zone/services/$location/$service.service.acl"
-    chain=$(chainname $zone $location $service)
-
-    if [ -f "$aclfile" ]; then
-        { while read line; do
-            action=$(echo $line | cut -d\  -f1)
-            source=$(echo $line | cut -d\  -f2)
-            cmt=$(echo $line | cut -d\  -f3-)
-            negated=""
-            if [ ! -z $(echo $source | grep -e '^!') ]; then
-                negated="'!'"
-                source=$(echo $source | cut -b2-)
-            fi
-            target="DROP"
-            cmd="iptables"
-            [ "allow" = "$action" ] && target="ACCEPT"
-            [ ! -z $(echo $source | grep ':') ] && cmd="ip6tables"
-            [ ! -z "$cmt" ] && cmt='-m comment --comment "$cmt"'
-            echo "$cmd -A $chain $negated -s $source -j $target"
-        done } < "$aclfile"
-    else
-        echo "iptables -A $chain -s 0.0.0.0/0 -j ACCEPT"
-        echo "ip6tables -A $chain -s ::0/0 -j ACCEPT"
-    fi
-}
-
-servenabled() {
-    zone=$1
-    location=$2
-    service=$3
-
-    # does zone exist
-    zonedir="$etcdir/role.active/zones/$zone"
-    [ ! -d "$zonedir" ] && doerror 1 "invalid zone specified '$zone', zone doesn't exist"
-
-    # is location valid
-    [ ! "$location" = "local" -a ! "$location" = "remote" ] \
-        && doerror 1 "invalid location specified '$localtion', must be 'local' or 'remote'"
-
-    # is service enabled
-    servfile="$zonedir/services/$location/$service.service"
-    [ ! -f "$servfile" ] && doerror 1 "invalid $location service specified '$service', service not enabled"
-}
-
-chainname() {
-    zone=$1
-    location=$2
-    service=$(echo $3 | tr - _)
-    chain="fwk_$zone"
-    [ ! -z "$location" ] && chain="${chain}_$(echo $location | cut -b1)"
-    [ ! -z "$service" ] && chain="${chain}_${service}"
-    echo $chain
-}
-
-confload core core_
+cd "$etcdir"
 
 case $mode in
+
+    -v)
+        #
+        # Output version
+        #
+        echo fwkit version $version
+        ;;
 
     rules)
 
@@ -181,114 +71,16 @@ case $mode in
                     doerror 1 "no role specified"
                 fi
 
-                # include role policy if it exists
-                policy="$etcdir/role.active/policy"
-                if [ -f "$policy.rules" ]; then
-                    echo "#\n# $policy.rules\n#\n" >> "$libdir/compiled.tmp"
-                    cat "$policy.rules" >> "$libdir/compiled.tmp"
-                elif [ -f "$policy" ]; then
-                    echo "#\n# $policy\n#\n" >> "$libdir/compiled.tmp"
-                    polaction=$(cat "$policy")
-                    if [ "$polaction" = "allow" ]; then
-                        polaction="ACCEPT"
-                    else
-                        polaction="DROP"
-                        echo "iptables -P INPUT ACCEPT" >> "$libdir/unload.tmp"
-                        echo "iptables -P OUTPUT ACCEPT" >> "$libdir/unload.tmp"
-                        echo "ip6tables -P INPUT ACCEPT" >> "$libdir/unload.tmp"
-                        echo "ip6tables -P OUTPUT ACCEPT" >> "$libdir/unload.tmp"
-                    fi
-                    echo "iptables -P INPUT $polaction" >> "$libdir/compiled.tmp"
-                    echo "iptables -P OUTPUT $polaction" >> "$libdir/compiled.tmp"
-                    echo "ip6tables -P INPUT $polaction" >> "$libdir/compiled.tmp"
-                    echo "ip6tables -P OUTPUT $polaction" >> "$libdir/compiled.tmp"
-                fi
+                exec 3<> "$libdir/unload.tmp"
+                fwk-rules >"$libdir/compiled.tmp"
 
-                # custom unload rules
-                if [ -d "$etcdir/rules.d/unload" ]; then
-                    for i in $( find "$etcdir/rules.d/unload" -name "*.rules" ); do
-                        echo "\n#\n# $i\n#\n" >> $libdir/unload.tmp
-                        cat "$i" >> "$libdir/unload.tmp"
-                    done
-                fi
-
-                # include pre-service rules
-                if [ -d "$etcdir/rules.d/pre" ]; then
-                    for i in $( find "$etcdir/rules.d/pre" -name "*.rules" ); do
-                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
-                        cat "$i" >> "$libdir/compiled.tmp"
-                    done
-                fi
-
-                # process zones
-                zonelist="$(ls -1 "$etcdir/role.active/zones" | grep -v default) default"
-                if [ -f "$etcdir/role.active/zoneorder" ]; then
-                    zonelist=$(cat "$etcdir/role.active/zoneorder")
-                fi
-                for zone in $zonelist; do
-                    zonedir="$etcdir/role.active/zones/$zone"
-
-                    if [ ! -d "$zonedir" ]; then
-                        continue;
-                    fi
-
-                    echo "\n##\n## zone: $zone\n##\n" >> "$libdir/compiled.tmp"
-                    dozone $zone >> "$libdir/compiled.tmp" 2>>"$libdir/unload.$zone.tmp"
-
-                    if [ ! -f "$zonedir/sources" ]; then
-                        doerror 1 "no sources defined for zone '$zone'"
-                    fi
-
-                    { while read i; do
-                        cmd=""
-                        if [ -z "$i" ]; then
-                            continue;
-                        fi
-                        if [ -z $(echo $i | grep -e ':') ]; then
-                            cmd="iptables"
-                        else
-                            cmd="ip6tables"
-                        fi
-                        echo "$cmd -A INPUT -s $i -j $zlcn" >> "$libdir/compiled.tmp"
-                        echo "$cmd -D INPUT -s $i -j $zlcn" >> "$libdir/unload.tmp"
-                        echo "$cmd -A OUTPUT -d $i -j $zrcn" >> "$libdir/compiled.tmp"
-                        echo "$cmd -D OUTPUT -d $i -j $zrcn" >> "$libdir/unload.tmp"
-                        cat "$libdir/unload.$zone.tmp" >> "$libdir/unload.tmp" && rm "$libdir/unload.$zone.tmp"
-                    done } < "$zonedir/sources"
-
-                    # include local service rules
-                    locsrv="$zonedir/services/local"
-                    if [ -d "$locsrv" ]; then
-                        for i in $( find "$locsrv" -name "*.service" ); do
-                            servname=$( echo $(basename $i) | sed 's/.service//' )
-                            doservice $zone local $servname >> "$libdir/compiled.tmp" 2>>"$libdir/unload.tmp"
-                        done
-                    fi
-
-                    # include remote service rules
-                    rmtsrv="$zonedir/services/remote"
-                    if [ -d "$rmtsrv" ]; then
-                        for i in $( find "$rmtsrv" -name "*.service" ); do
-                            servname=$( echo $(basename $i) | sed 's/.service//' )
-                            doservice $zone remote $servname >> "$libdir/compiled.tmp" 2>>"$libdir/unload.tmp"
-                        done
-                    fi
-                done
-
-                # include post-service rules
-                if [ -d "$etcdir/rules.d/post" ]; then
-                    for i in $( find "$etcdir/rules.d/post" -name "*.rules" ); do
-                        echo "\n#\n# $i\n#\n" >> $libdir/compiled.tmp
-                        cat "$i" >> "$libdir/compiled.tmp"
-                    done
-                fi
-
-                if [ ! -f "$libdir/compiled.tmp" ]; then
-                    donotice "no rules found!"
+                if [ ! $? = 0 ]; then
+                    doerror 2 "failed to compile rules"
                 fi
 
                 mv "$libdir/compiled.tmp" "$libdir/compiled.rules"
                 mv "$libdir/unload.tmp" "$libdir/unload.rules"
+                chmod +x "$libdir/compiled.rules" "$libdir/unload.rules"
 
                 if [ -f "$libdir/cached.rules" ]; then
                     rm "$libdir/cached.rules"
@@ -320,7 +112,7 @@ case $mode in
                                 eval "export if_${if}_addr=\"$addr\""
                             done
 
-                            env -i FWKIT_ETCDIR=$etcdir FWKIT_LIBDIR=$libdir fwkit=$0 $(confenv vars) $core_interpreter "$libdir/compiled.rules"
+                            FWKIT_ETCDIR="$FWKIT_ETCDIR" FWKIT_LIBDIR="$FWKIT_LIBDIR" fwkit="$0" fwk-config exec $core_interpreter "$libdir/compiled.rules"
                         }
                     )
 
@@ -363,15 +155,12 @@ case $mode in
                 ;;
 
             *)
-                echo
-                echo "usage: $myname rules { clean | compile | load | reload | unload }"
-                echo
+                echo "\nusage: $myname rules { clean | compile | load | reload | unload }\n"
                 echo "    clean   Clear the cached ruleset"
                 echo "    compile Compile the rules but don't load them"
                 echo "    load    Load the ruleset (compile if cached rules aren't available)"
                 echo "    reload  Unload, clean, and load the ruleset"
-                echo "    unload  Cached the loaded ruleset and unload it"
-                echo
+                echo "    unload  Cached the loaded ruleset and unload it\n"
                 exit 1
                 ;;
 
@@ -396,20 +185,18 @@ case $mode in
                 desc=$5
 
                 if [ -z "$role" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name> <policy> <description>"
-                    echo
+                    echo "\nusage: $myname $mode $action <name> <policy> <description>\n"
                     echo "    name         The name of the role to create"
                     echo "    policy       The default packet policy of the role (allow or deny)"
-                    echo "    description  An optional description for the new role"
-                    echo
+                    echo "    description  An optional description for the new role\n"
                     exit 1
                 fi
 
-                if [ -d "$etcdir/roles/$role" ]; then
+                if [ ! -z "$(fwk-role list | grep "^$role\$")" ]; then
                     doerror 1 "role already exists '$role'"
                 fi
 
+                fwk-role define "$role" "$desc"
                 mkdir -p "$etcdir/roles/$role/zones/default/services/local" "$etcdir/roles/$role/zones/default/services/remote"
                 echo "0.0.0.0/0" > "$etcdir/roles/$role/zones/default/sources"
                 echo "$policy" > "$etcdir/roles/$role/policy"
@@ -434,11 +221,8 @@ case $mode in
             set)
                 newrole=$3
                 if [ -z "$newrole" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name>"
-                    echo
-                    echo "    name  The name of the role to promote to the active role"
-                    echo
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name  The name of the role to promote to the active role\n"
                     exit 1
                 fi
 
@@ -470,11 +254,8 @@ case $mode in
                 role=$3
 
                 if [ -z "$role" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name>"
-                    echo
-                    echo "    name  The name of the role to undefine (delete)"
-                    echo
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name  The name of the role to undefine (delete)\n"
                     exit 1
                 fi
 
@@ -486,15 +267,12 @@ case $mode in
                 ;;
 
             *)
-                echo
-                echo "usage: $myname role { define | get | list | set | undefine }"
-                echo
+                echo "\nusage: $myname role { define | get | list | set | undefine }\n"
                 echo "    define    Define a new role"
                 echo "    get       Get the current role"
                 echo "    list      List available roles"
                 echo "    set       Set the current role"
-                echo "    undefine  Undefine (delete) an existing role"
-                echo
+                echo "    undefine  Undefine (delete) an existing role\n"
                 exit 1
                 ;;
 
@@ -508,18 +286,46 @@ case $mode in
         #
         case $action in
 
+            apply)
+                zone=$3
+                type=$4
+                service=$5
+                acl=$6
+
+                if [ -z "$acl" ]; then
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service> <acl>\n"
+                    echo "    acl      The name of the ACL to apply"
+                    echo "    service  The service to apply the ACL to"
+                    echo "    zone     Zone the service is enabled for"
+                    exit 1
+                fi
+
+                fwk-service apply "$zone" "$type" "$service" "$acl"
+                ;;
+
+            clear)
+                zone=$3
+                type=$4
+                service=$5
+
+                if [ -z "$service" ]; then
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service>\n"
+                    echo "    service  The service to clear the ACL from"
+                    echo "    zone     Zone the service is enabled for"
+                    exit 1
+                fi
+
+                fwk-service clear "$zone" "$type" "$service"
+                ;;
+
             disable)
                 type=$3
                 service=$4
 
                 if [ -z "$type" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <type> [<zone>:]<service> [ ... ]"
-                    echo
-                    echo "    type     The type of service, local or remote"
+                    echo "\nusage: $myname $mode $action { local | remote } [<zone>:]<service> [ ... ]\n"
                     echo "    zone     Optional zone to disable the service for (if not specified, assumes 'default' zone)"
-                    echo "    service  The service to disable"
-                    echo
+                    echo "    service  The service to disable\n"
                     exit 1
                 fi
 
@@ -548,19 +354,8 @@ case $mode in
                         service=$(echo $service | cut -d: -f2)
                     fi
 
-                    if [ ! -f "$etcdir/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service doesn't exist"
-                    fi
+                    fwk-service delete "$zone" "$type" "$service"
 
-                    if [ ! -d "$etcdir/role.active/zones/$zone/services/$type" ]; then
-                        doerror 1 "directory $etcdir/role.active/zones/$zone/services/$type doesn't exist"
-                    fi
-
-                    if [ ! -h "$etcdir/role.active/zones/$zone/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service already disabled for zone $zone"
-                    fi
-
-                    rm "$etcdir/role.active/zones/$zone/services/$type/$service.service"
                     services="$services $service"
 
                 done
@@ -573,13 +368,9 @@ case $mode in
                 service=$4
 
                 if [ -z "$type" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <type> [<zone>:]<service> [ ... ]"
-                    echo
-                    echo "    type     The type of service, local or remote"
+                    echo "\nusage: $myname $mode $action { local | remote } [<zone>:]<service> [ ... ]\n"
                     echo "    zone     Optional zone to enable the service for (if not specified, assumes 'default' zone)"
-                    echo "    service  The service to enable"
-                    echo
+                    echo "    service  The service to enable\n"
                     exit 1
                 fi
 
@@ -608,19 +399,12 @@ case $mode in
                         service=$(echo $service | cut -d: -f2)
                     fi
 
-                    if [ ! -f "$etcdir/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service doesn't exist"
+                    srvfile="$etcdir/services/$type/$service.service"
+                    if [ -x "$srvfile" ]; then
+                        "$srvfile" "$zone" "$type" | fwk-service add "$zone" "$type" "$service"
+                    else
+                        fwk-service add "$zone" "$type" "$service" < "$etcdir/services/$type/$service.service"
                     fi
-
-                    if [ ! -d "$etcdir/role.active/zones/$zone/services/$type" ]; then
-                        doerror 1 "directory $etcdir/role.active/zones/$zone/services/$type doesn't exist"
-                    fi
-
-                    if [ -h "$etcdir/role.active/zones/$zone/services/$type/$service.service" ]; then
-                        doerror 1 "$type service $service already enabled for zone $zone"
-                    fi
-
-                    ln -s "$etcdir/services/$type/$service.service" "$etcdir/role.active/zones/$zone/services/$type"
 
                     services="$services $service"
 
@@ -646,7 +430,7 @@ case $mode in
                 printf '%-7s%-15s%s\n\n' Active Name Description
 
                 for i in $( find "$etcdir/services/local/" -type f -printf "%P\n" | sort ); do
-                    if [ -h "$etcdir/role.active/zones/$zone/services/local/$i" ]; then
+                    if [ -e "$etcdir/role.active/zones/$zone/services/local/$i" ]; then
                         printf '%7s' '* '
                     else
                         echo -n "       "
@@ -672,7 +456,7 @@ case $mode in
                 printf '%-7s%-15s%s\n\n' Active Name Description
 
                 for i in $( find "$etcdir/services/remote/" -type f -printf "%P\n" | sort ); do
-                    if [ -h "$etcdir/role.active/zones/$zone/services/remote/$i" ]; then
+                    if [ -e "$etcdir/role.active/zones/$zone/services/remote/$i" ]; then
                         printf '%7s' '* '
                     else
                         echo -n "       "
@@ -697,14 +481,47 @@ case $mode in
                 echo
                 ;;
 
+            show)
+                zone=$3
+                type=$4
+                service=$5
+
+                if [ -z "$service" ]; then
+                    echo "\nusage: $myname $mode $action <zone> { local | remote } <service>\n"
+                    echo "    service  The service to clear the ACL from"
+                    echo "    zone     Zone the service is enabled for"
+                    exit 1
+                fi
+
+                path=$(fwk-service path "$zone" "$type" "$service")
+
+                if [ ! $? = 0 ]; then
+                    exit $?
+                fi
+
+                if [ -x "$path" ]; then
+                    desc=$( head -n2 "$path" | tail -n1 | awk -F' - ' '{print $3}' )
+                else
+                    desc=$( head -n1 "$path" | awk -F' - ' '{print $3}' )
+                fi
+
+                echo "\nSERVICE $zone/$type/$service\n"
+                echo "$desc\n"
+
+                acl=$(fwk-service acl "$zone" "$type" "$service" 2>/dev/null)
+                if [ ! -z "$acl" ]; then
+                   echo "ACL $acl\n"
+                fi
+                ;;
+
             *)
-                echo
-                echo "usage: $myname service { disable | enable | list }"
-                echo
-                echo "    disable Disable a service"
-                echo "    enable  Enable a service"
-                echo "    list    List available services"
-                echo
+                echo "\nusage: $myname service { apply | clear | disable | enable | list | show }\n"
+                echo "    apply    Apply an ACL to a service"
+                echo "    clear    Clear an applied ACL from a service"
+                echo "    disable  Disable a service"
+                echo "    enable   Enable a service"
+                echo "    list     List available services\n"
+                echo "    show     Show service details\n"
                 ;;
 
         esac
@@ -722,12 +539,9 @@ case $mode in
                 value=$4
 
                 if [ -z "$name" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <variable> <value>"
-                    echo
+                    echo "\nusage: $myname $mode $action <variable> <value>\n"
                     echo "    variable  The name of the variable to set"
-                    echo "    value     The value of the variable"
-                    echo
+                    echo "    value     The value of the variable\n"
                     exit 1
                 fi
 
@@ -735,32 +549,16 @@ case $mode in
                     doerror 1 "config value must be specified"
                 fi
 
-                path=$(echo $name | tr . /)
-                type=$(echo $name | cut -d. -f1)
-
-                if [ -z "$(echo $type | grep -e 'vars' -e 'core')" ]; then
-                    doerror 1 "setting prefix must be 'core' or 'vars'"
-                fi
-
-                mkdir -p "$etcdir/conf/$(dirname $path)"
-                echo "$value" > "$etcdir/conf/$path"
+                echo "$value" | fwk-config "$name"
                 ;;
 
             get)
                 name=$3
 
                 if [ -z "$name" ]; then
-                    (
-                        cd "$etcdir/conf"
-                        for f in $(find . -type f); do
-                            path=$(echo $f | cut -b3-)
-                            echo $(echo $path | tr / .) = $(cat $f)
-                        done
-                    )
-                elif [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
-                    doerror 1 "setting doesn't exist '$name'"
+                    fwk-config list
                 else
-                    cat "$etcdir/conf/$(echo $name | tr . /)"
+                    fwk-config read "$name"
                 fi
                 ;;
 
@@ -768,29 +566,19 @@ case $mode in
                 name=$3
 
                 if [ -z "$name" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <variable>"
-                    echo
-                    echo "    variable  The name of the variable to unset"
-                    echo
+                    echo "\nusage: $myname $mode $action <variable>\n"
+                    echo "    variable  The name of the variable to unset\n"
                     exit 1
                 fi
 
-                if [ ! -f "$etcdir/conf/$(echo $name | tr . /)" ]; then
-                    doerror 1 "setting doesn't exist '$name'"
-                fi
-
-                rm "$etcdir/conf/$(echo $name | tr . /)"
+                fwk-config delete "$name"
                 ;;
 
             *)
-                echo
-                echo "usage: $myname config { get | set | unset }"
-                echo
+                echo "\nusage: $myname config { get | set | unset }\n"
                 echo "    get    Get the value of a specific setting, or all settings"
                 echo "    set    Set the value of a setting"
-                echo "    unset  Delete a setting"
-                echo
+                echo "    unset  Delete a setting\n"
                 exit 1
                 ;;
 
@@ -808,79 +596,51 @@ case $mode in
                 zone=$3
                 source=$4
                 desc=$5
-                zonedir="$etcdir/role.active/zones/$zone"
 
                 if [ -z "$zone" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name> <source> [ <description> ]"
-                    echo
+                    echo "\nusage: $myname $mode $action <name> <source> [ <description> ]\n"
                     echo "    name         The name of the zone to define"
                     echo "    source       The source host/network address of the zone"
-                    echo "    description  Optional description for the zone"
-                    echo
+                    echo "    description  Optional description for the zone\n"
                     exit 1
                 fi
 
-                if [ -d "$zonedir" ]; then
-                    doerror 1 "zone already defined '$zone'"
-                fi
-
-                if [ -z "$source" ]; then
-                    doerror 1 "zone must define a source address/network"
-                fi
-
-                mkdir -p "$zonedir/services/local" "$zonedir/services/remote"
-
-                for src in $(echo $source); do
-                    echo "$src" >> "$zonedir/sources"
-                done
-
-                if [ ! -z "$desc" ]; then
-                    echo "$desc" > "$zonedir/description"
-                fi
+                echo "$source" | fwk-zone define "$zone" "$description"
                 ;;
 
             list)
-                for zone in $(ls -1 "$etcdir/role.active/zones"); do
+                printf '  %-15s%-30s%s\n' "Zone Name" "Description" "Source(s)"
+                for zone in $(fwk-zone list); do
                     zonedir="$etcdir/role.active/zones/$zone"
+                    src=""
+                    if [ -f "$zonedir/sources" ]; then
+                        src=$(for i in `cat "$zonedir/sources"`; do echo -n "$i "; done)
+                    fi
                     desc=""
                     if [ -f "$zonedir/description" ]; then
                         desc=$(head -n1 "$zonedir/description")
                     fi
-                    echo -n "  "
-                    printf '%-15s' "$zone"
-                    echo $desc
+                    printf '  %-15s%-30s%s\n' "$zone" "$desc" "$src"
                 done
                 ;;
 
             undefine)
                 zone=$3
-                zonedir="$etcdir/role.active/zones/$zone"
 
                 if [ -z "$zone" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <name>"
-                    echo
-                    echo "    name The name of the zone to undefine (delete)"
-                    echo
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name The name of the zone to undefine (delete)\n"
                     exit 1
                 fi
 
-                if [ ! -d "$zonedir" ]; then
-                    doerror 1 "zone hasn't been defined '$zone'"
-                fi
-
-                rm -r "$zonedir"
+                fwk-zone undefine "$zone"
                 ;;
 
             *)
-                echo
-                echo "usage: $myname $mode { define | list | undefine }"
-                echo
+                echo "\nusage: $myname $mode { define | list | undefine }\n"
                 echo "    define    Define a new zone"
                 echo "    list      Get a list of all zones for the current roll"
-                echo "    undefine  Undefine (delete) an existing zone"
-                echo
+                echo "    undefine  Undefine (delete) an existing zone\n"
                 exit 1
                 ;;
 
@@ -892,134 +652,95 @@ case $mode in
         #
         # Actions related to acls
         #
-        zone=$3
-        location=$4
-        service=$5
-        servfile="$etcdir/role.active/zones/$zone/services/$location/$service.service"
+        name=$3
 
         case $action in
 
-            add)
-                defaction=$6
-                source=$7
-                description=$8
+            def|define)
+                defaction="deny"
 
-                if [ -z "$source" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source> [ <description> ]"
-                    echo
-                    echo "    zone     The zone the service is enable for"
-                    echo "    service  The service to apply the ACL to"
-                    echo "    source   The host or network address"
-                    echo
+                if [ ! -z "$4" ]; then
+                    defaction=$4
+                fi
+
+                if [ -z "$name" ]; then
+                    echo "\nusage: $myname $mode $action <name> [ allow | deny ]\n"
+                    echo "    name  The name of the ACL"
                     exit 1
                 fi
 
-                servenabled $zone $location $service
-
-                # is action valid
-                [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ] \
-                    && doerror 1 "invalid action specified '$defaction', must be 'allow' or 'deny'"
-
-                echo "$defaction $source $description" >> "$servfile.acl"
-                ;;
-
-            clear)
-                if [ -z "$service" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
-                    echo
-                    echo "    zone     The zone the service is enable for"
-                    echo "    service  The service to apply the acl to"
-                    echo
-                    exit 1
-                fi
- 
-                servenabled $zone $location $service
-
-                # does service acl exist
-                [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
-
-                rm "$servfile.acl"
-                ;;
-
-            del|delete)
-                defaction=$6
-                source=$7
-
-                if [ -z "$source" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service> { allow | deny } <source>"
-                    echo
-                    echo "    zone     The zone the service is enable for"
-                    echo "    service  The service to apply the acl to"
-                    echo "    source   The host or network address"
-                    echo
-                    exit 1
+                if [ ! "$defaction" = "allow" -a ! "$defaction" = "deny" ]; then
+                    doerror 2 "default action must be 'allow' or 'deny', '$defaction' given"
                 fi
 
-                servenabled $zone $location $service
-
-                # does service have an acl
-                [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
-
-                cat "$servfile.acl" | grep -v -e "^$defaction $source" > "$servfile.acl.tmp" && mv "$servfile.acl.tmp" "$servfile.acl"
+                tf=$(mktemp /tmp/fwkit.acl.XXXXXXXX)
+                ${EDITOR:-vi} "$tf"
+                fwk-acl write "$name" "$defaction" < "$tf"
+                rm "$tf"
                 ;;
 
             edit)
-                if [ -z "$service" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
-                    echo
-                    echo "    zone     The zone the service is enable for"
-                    echo "    service  The service to list acls for"
-                    echo
+                if [ -z "$name" ]; then
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name  The name of the ACL\n"
                     exit 1
                 fi
 
-                servenabled $zone $location $service
+                if ! (fwk-acl path "$name"); then
+                    exit 1
+                fi
 
-                exec ${EDITOR:-vi} "$servfile.acl"
+                tf=$(mktemp /tmp/fwkit.acl.XXXXXXXX)
+                defaction=$(fwk-acl read "$name" | head -n1 | cut -d\  -f2)
+                fwk-acl read "$name" | tail -n+2 > "$tf"
+                ${EDITOR:-vi} "$tf"
+                fwk-acl write "$name" "$defaction" < "$tf"
+                rm "$tf"
                 ;;
 
             list)
-                if [ -z "$service" ]; then
-                    echo
-                    echo "usage: $myname $mode $action <zone> { local | remote } <service>"
-                    echo
-                    echo "    zone     The zone the service is enable for"
-                    echo "    service  The service to list acls for"
-                    echo
+                fwk-acl list
+                ;;
+
+            show)
+                if [ -z "$name" ]; then
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name  The name of the ACL"
                     exit 1
                 fi
 
-                servenabled $zone $location $service
+                if ! (fwk-acl path "$name"); then
+                    exit 1
+                fi
 
-                # does service have an acl
-                [ ! -f "$servfile.acl" ] && doerror 1 "no acl defined for $location service '$service'"
-
-                echo
-                echo "ACLS FOR $zone/$location/$service"
+                echo "\nACL $name"
                 printf '\n%-7s%-45s%s\n\n' "Action" "Source" "Description"
-                { while read line; do
+                echo $(fwk-acl read "$name" | grep -v -e '^default') | { while read line; do
                     aclaction=$(echo $line | awk '{print $1}')
                     source=$(echo $line | awk '{print $2}')
                     description=$(echo $line | awk '{$1=$2=""; print $0}' | sed -r 's/^\s+//')
                     printf '%-7s%-45s%s\n' "$aclaction" "$source" "$description"
-                done } < "$servfile.acl"
-                echo
+                done } 
+                echo "\nDefault action: $(fwk-acl read "$name" | head -n1 | cut -d\  -f2)\n"
+                ;;
+
+            undef|undefine)
+                if [ -z "$name" ]; then
+                    echo "\nusage: $myname $mode $action <name>\n"
+                    echo "    name  The name of the ACL"
+                    exit 1
+                fi
+
+                fwk-acl delete "$name"
                 ;;
 
             *)
-                echo
-                echo "usage: $myname $mode { add | clear | delete | list }"
-                echo
-                echo "    add     Add an acl for a service"
-                echo "    clear   Clear acl for a service"
-                echo "    delete  Delete an acl for a servive"
-                echo "    edit    Launch an editor to manually edit ACL entires for a service"
-                echo "    list    List acls for a service"
-                echo
+                echo "\nusage: $myname $mode { define | edit | list | show | undefine }\n"
+                echo "    define    Define an ACL"
+                echo "    edit      Launch an editor to edit ACL entries"
+                echo "    list      List all the defined ACLs"
+                echo "    show      Show ACL for a service\n"
+                echo "    undefine  Delete an ACL for a servive"
                 exit 1
                 ;;
 

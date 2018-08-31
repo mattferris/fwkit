@@ -1,4 +1,11 @@
 #!/usr/bin/perl
+#
+# fwkit - A modular approach to iptables-based firewall rulesets
+#
+# Copyright (c) 2018 Matt Ferris <matt@bueller.ca>
+# Licensed under BSD 2-clause license
+# github.com/mattferris/fwkit/blob/master/License.txt
+#
 
 use YAML::Tiny;
 
@@ -99,7 +106,7 @@ sub newservice {
         if (defined($trpt->{'description'})) {
             my $cmt = substr($trpt->{'description'}, 0, 256);
             $cmt =~ s/\'/\\\'/g;
-            push(@{$out}, "--comment '$service: ".substr($cmt, 0, 256-length($service)-2)."'");
+            push(@{$out}, "-m comment --comment '$service: ".substr($cmt, 0, 256-length($service)-2)."'");
         }
 
         push(@{$out}, "-j $srvcn");

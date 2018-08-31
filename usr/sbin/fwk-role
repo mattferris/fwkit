@@ -1,0 +1,101 @@
+#!/bin/bash
+#
+# fwkit - A modular approach to iptables-based firewall rulesets
+#
+# Copyright (c) 2018 Matt Ferris <matt@bueller.ca>
+# Licensed under BSD 2-clause license
+# github.com/mattferris/fwkit/blob/master/License.txt
+#
+
+action=$1
+path="roles"
+
+_err() {
+    code=$1
+    msg=$2
+    echo "$msg" 1>&2
+    exit $code
+}
+
+if [ -z "$action" ]; then
+    me=$(basename $0)
+    cat <<EOF 1>&2
+usage:
+    $me current [ <name> ]
+    $me define <name> [ <description> ]
+    $me list
+    $me undefine <name>
+EOF
+    exit 1
+fi
+
+# check if role exists
+roleexists() {
+    path=$1
+    role=$2
+
+    if [ -z "$role" ]; then
+        _err 1 "error: no role specified"
+    fi
+
+    if [ -d "$path/$role" ]; then
+        return 1
+    else
+        return 0
+    fi
+}
+
+case $action in
+
+    current)
+        role=$2
+
+        if [ -z "$role" ]; then
+            if [ -h "role.active" ]; then
+                echo $(basename $(readlink role.active))
+            fi
+        else
+            if [ -h "role.active" ]; then
+                rm "role.active"
+            fi
+            ln -s "$(realpath "$path/$role")" role.active
+        fi
+        ;;
+
+    define)
+        role=$2
+        description=$3
+
+        roleexists "$path" $role
+        if [ $? = 1 ]; then
+            _err 2 "error: role already defined: $role"
+        fi
+
+        mkdir -p "$path/$role/zones"
+        echo "$description" > "$path/$role/description"
+        ;;
+
+    list)
+        ls -1 "$path"
+        ;;
+
+    undefine)
+        role=$2
+
+        roleexists "$path" $role
+        if [ $? = 0 ]; then
+            _err 2 "error: role hasn't been defined: $role"
+        fi
+
+        if [ "$(fwk-role current)" = "$role" ]; then
+            _err 2 "error: can't undefine an active role: $role"
+        fi
+
+        rm -r "$path/$role"
+        ;;
+
+    *)
+        _err 1 "error: invalid action specified: $action"
+        ;;
+
+esac
