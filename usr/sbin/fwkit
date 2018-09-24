@@ -7,7 +7,7 @@
 # github.com/mattferris/fwkit/blob/master/License.txt
 #
 
-version="0.5"
+version="0.5.1"
 
 myname=$( basename $0 )
 
