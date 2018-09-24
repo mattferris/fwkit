@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.5.1
+-----
+
+* Fixed ACLs on remote services not properly setting the destination address
+
 0.5
 ---
 
