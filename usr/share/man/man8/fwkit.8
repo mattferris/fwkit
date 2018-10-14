@@ -4,15 +4,21 @@ fwkit \- Firewall Kit for modular firewalls
 .SH SYNOPSIS
 \fBfwkit rules\fR { \fBclean\fR | \fBcompile\fR | \fBload\fR | \fBreload\fR | \fBunload\fR }
 .br
-\fBfwkit service\fR { \fBdisable\fR | \fBenable\fR } { \fBlocal\fR } \fIservice\fR ...
+\fBfwkit service apply \fIzone\fR { \fBlocal\fR | \fBremote\fR } \fIservice\fR \fIacl\fR
 .br
-\fBfwkit service list\fR
+\fBfwkit service\fR { \fBdisable\fR | \fBenable\fR } { \fBlocal\fR | \fBremote\fR } \fIservice\fR ...
+.br
+\fBfwkit service list\fR [ \fIzone\fR ]
+.br
+\fBfwkit service\fR { \fBclear\fR | \fBshow\fR } \fIzone\fR { \fBlocal\fR | \fBremote\fR } \fIservice\fR
 .br
 \fBfwkit role\fR { \fBget\fR | \fBlist\fR }
 .br
-\fBfwkit role set \fIrole\fR
+\fBfwkit role set \fIname\fR
 .br
-\fBfwkit role\fR { \fBdefine\fR | \fBundefine\fR } \fIrole\fR \fIpolicy\fR [ \fIdescription\fR ]
+\fBfwkit role\fR \fBdefine\fR \fIname\fR [ \fBallow\fR | \fBdeny\fR ] [ \fIdescription\fR ]
+.br
+\fBfwkit role\fR \fBundefine\fR \fIname\fR
 .br
 \fBfwkit zone\fR \fBdefine\fR \fIname source\fR [ \fIdescription\fR ]
 .br
@@ -20,9 +26,11 @@ fwkit \- Firewall Kit for modular firewalls
 .br
 \fBfwkit zone list\fR
 .br
-\fBfwkit acl\fR { \fBadd\fR | \fBdelete\fR } \fIzone\fR { \fBlocal\fR | \fBremote\fR } \fIservice action source\fR
+\fBfwkit acl\fR { \fBdefine\fR } \fIname\fR [ \fBallow\fR | \fBdeny\fR ]
 .br
-\fBfwkit acl\fR { \fBclear\fR | \fBedit\fR | \fBlist\fR } { \fBlocal\fR | \fBremote\fR } \fIservice\fR
+\fBfwkit acl\fR { \fBedit\fR | \fBshow\fR | \fBundefine\fR } \fIname\fR
+.br
+\fBfwkit acl\fR { \fBlist\fR }
 .br
 \fBfwkit config get\fR [ \fIvar\fR ]
 .br
@@ -30,7 +38,7 @@ fwkit \- Firewall Kit for modular firewalls
 .br
 \fBfwkit config unset \fIvar\fR
 .SH DESCRIPTION
-fwkit is primarily designed around the concept of roles and services. Roles maintain a collection of enabled services. A ruleset is compiled based on the services enabled for the active role. Roles can be customized to suit any need, and a number of roles are configured by default.
+fwkit is primarily designed around the concept of roles, zones, and services. Roles maintain a collection of enabled services for one or more zones. A ruleset is compiled based on the services enabled for the active role. Roles can be customized to suit any need. An example role is included by default.
 .SH OPTIONS
 .TP
 .B rules
@@ -58,14 +66,23 @@ Unload the rulset. The live ruleset is cached using
 Service management.
 .RS
 .TP .4i
+\fBapply\fR \fIzone\fR { \fBlocal\fR | \fBremote\fR } \fIservice\fR \fIacl\fR
+Apply the ACL \fIacl\fR to \fBlocal\fR or \fBremote\fR \fIservice\fR in \fIzone\fR.
+.TP .4i
+\fBclear\fR \fIzone\fR { \fBlocal\fR | \fBremote\fR } \fIservice\fR
+Clear any ACL from \fBlocal\fR or \fBremote\fR \fIservice\fR in \fIzone\fR.
+.TP .4i
 \fBdisable\fR { \fBlocal\fR | \fBremote\fR } \fIservice\fR ...
-Disable a \fBlocal\fR or \fBremote\fR \fIservice\fR. More than one service can be specified.
+Disable a \fBlocal\fR or \fBremote\fR \fIservice\fR. More than one service can be specified. Service names can be \fIzone\fR:\fIservice\fR, or simply \fIservice\fR in which case the \fBdefault\fR zone is assumed.
 .TP .4i
 \fBenable\fR { \fBlocal\fR | \fBremote\fR } \fIservice\fR ...
-Enable a \fBlocal\fR or \fBremote\fR \fIservice\fR. More than one service can be specified.
+Enable a \fBlocal\fR or \fBremote\fR \fIservice\fR. More than one service can be specified. See above.
 .TP .4i
-\fBlist\fR
-List all services along with their state (enabled or disabled).
+\fBlist\fR [ \fIzone\fR ]
+List all services along with their state (enabled or disabled) for \fIzone\fR. If no zone is specified, the assume the \fBdefault\fR zone.
+.TP .4i
+\fBshow\fR \fIzone\fR { \fBlocal\fR | \fBremote\fR } \fIservice\fR
+Show the details of \fBlocal\fR or \fBremote\fR \fIservice\fR in \fIzone\fR.
 .RE
 .TP
 \fBrole\fR|\fBroles\fR
@@ -78,14 +95,14 @@ Get the current role.
 .B list
 List the available roles. The active role is marked with an asterisk.
 .TP .4i
-\fBset \fIrole\fR
-Set the active role to \fIrole\fR.
+\fBset \fIname\fR
+Set the active role to \fIname\fR.
 .TP .4i
-\fBdefine \fIrole policy\fR [ \fIdescription\fR ]
-Define a new role \fIrole\fR, with a default policy of \fIpolicy\fR and optional description \fIdescription\fR.
+\fBdefine \fIname\fR [ \fBallow\fR | \fBdeny\fR ] [ \fIdescription\fR ]
+Define a new role \fIname\fR, with a default policy of \fBallow\fR or \fBdeny\fR and optional description \fIdescription\fR.
 .TP .4i
 .B undefine
-Undefine (delete) an existing role \fIrole\fR.
+Undefine (delete) an existing role \fIname\fR.
 .RE
 .TP
 \fBzone\fR|\fBzones\fR
@@ -121,26 +138,27 @@ Unset the configuration variable \fIvar\fR.
 ACL management.
 .RS
 .TP .4i
-\fBadd \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice action source \fR[ \fIdescription\fR ]
-Add an ACL for host/network address \fIsource\fR for \fIservice\fR in zone \fIzone\fR.
+\fBdefine \fIname\fR [ \fBallow\fR | \fBdeny\fR ]
+Define a new ACL \fIname\fR, setting it's default action to \fBallow\fR or \fBdeny\fR.
 .TP .4i
-\fBclear \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
-Clear all ACL entries for service \fIservice\fR in zone \fIzone\fR.
+\fBedit \fIname\fR
+Launch an editor to manually edit the ACL entries for \fIname\fR.
 .TP .4i
-\fBdelete \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice action source\fR
-Delete an ACL \fIaction\fR \fIsource\fR for service \fIservice\fR in zone \fIzone\fR.
+\fBlist\fR
+List all defined ACLs.
 .TP .4i
-\fBedit \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
-Launch an editor to manually edit the ACL entries for \fIservice\fR in zone \fIzone\fR.
+\fBshow\fR \fIname\fR
+Show the contents of ACL \fIname\fR.
 .TP .4i
-\fBlist \fIzone \fR{ \fBlocal\fR | \fBremote\fR } \fIservice\fR
-List the ACL entries for \fIservice\fR in zone \fIzone\fR.
+\fBundefine\fR \fIname\fR
+Undefine (delete) the ACL \fIname\fR.
 .RS
 .SH ZONE MANAGEMENT
 Roles are created with a single zone called "default". Additional zones can be defined for a role to segment traffic from differnet networks and/or interfaces, allowing services to be enabled or disabled independently for these segments. For example:
 .P
 .in +7
 fwkit zone define lan 192.168.0.0/24
+.br
 fwkit services enable local lan:ssh lan:smb lan:dhcp
 .P
 When services are enabled or disable for a zone other then the "default" zone, they must be prepended with the zone name followed by a colon ":".
@@ -182,7 +200,7 @@ fwkit rules reload
 .SH FILES
 .TP
 /etc/fwkit/roles/\fIrole\fR/policy.rules
-The first file included during compilation, appropriate for setting chain policies.
+If it exists, it overrides the roles defined policy. Policies are set before other rules are loaded, so this file provides a way to configure more complicated policies.
 .TP
 /etc/fwkit/rules.d/pre/*.rules
 Files containing rules to be included before service definitions.
