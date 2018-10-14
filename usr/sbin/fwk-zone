@@ -76,7 +76,17 @@ case $action in
         if [ -f "$path/zoneorder" ]; then
             cat "$path/zoneorder"
         else
-            ls -1 "$path"
+            hasdefault=0
+            for zone in $(ls -1 "$path"); do
+                if [[ $zone = "default" ]]; then
+                    hasdefault=1
+                    continue
+                fi
+                echo $zone
+            done
+            if [[ $hasdefault = 1 ]]; then
+                echo default
+            fi
         fi
         ;;
 
