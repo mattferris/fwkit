@@ -1,11 +1,12 @@
 [Unit]
-Description=SD57 Firewall Kit Control Service
+Description=Firewall Kit Control Service
 After=network.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=-/etc/default/fwkit
+ExecStartPre=/usr/sbin/fwkit rules clean
 ExecStart=/usr/sbin/fwkit rules load
 ExecReload=/usr/sbin/fwkit rules reload
 ExecStop=/usr/sbin/fwkit rules unload
