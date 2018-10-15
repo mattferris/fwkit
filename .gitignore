@@ -1,2 +1,3 @@
 var/lib/fwkit
 etc/fwkit/role.active
+*.deb
