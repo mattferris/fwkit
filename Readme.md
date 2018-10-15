@@ -10,21 +10,15 @@ You can view a list of available roles, and set one of them to be the active rol
 ```
 # fwkit role list
   file-server
-  fog
-  nextcloud
   open
-  samba-ad-dc
   web-server
 
 # fwkit role set file-server
-role changed: samba-ad-dc -> file-server
+role changed: (none) -> file-server
 
 # fwkit role list
 * file-server
-  fog
-  nextcloud
   open
-  samba-ad-dc
   web-server
 ```
 
@@ -34,6 +28,8 @@ You can view the services enabled for the role.
 
 ```
 # fwkit service list
+
+ZONE default
 
 LOCAL SERVICES
 Active Name           Description
@@ -80,7 +76,7 @@ Active Name           Description
      * ssh            Secure Shell Server; 22/tcp
 ```
 
-A listing of all available local and remote services is display, with a description and port listing.
+A listing of all available local and remote services for the zone is display, with a description and port listing.
 
 Enabling and disabling services is easy.
 
@@ -127,15 +123,15 @@ Beyond simply enabling or disabling services, there are a few options for custom
     roles/
         file-server/
             description
-            policy.rules
+            policy
             zones/
                 default/
-                   default_action
                    description
                    services/
                        local/
                    services/
                        remote/
+                   sources
         ...
     rules.d/
         pre/
@@ -147,20 +143,6 @@ Beyond simply enabling or disabling services, there are a few options for custom
         remote/
             ...
 ```
-
-### policy.rules
-
-This file is included before all others during the compilation process and is intented to configure chain policies. For example, you may want to set the `INPUT` and `OUTPUT` chain policies to `DROP`.
-
-```
-# policy.rules - set default policy to drop
-iptables -P INPUT DROP
-iptables -P OUTPUT DROP
-```
-
-### zones/<zone>/default_action
-
-This file specifies the default action of traffic for the zone. Values are `allow` or `deny`.
 
 ### rules.d
 
@@ -191,33 +173,28 @@ iptables -A INPUT -p tcp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
 iptables -A INPUT -p udp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
 ```
 
-When a service is enabled, it is symlinked into the active role's `zones/<zone>/services/local` or `zones/<zone>/services/remote` sub-directory.
+While services can be defined as static rules, they can also be defined using dynamic formats as well. If the service file has the execute bit set, fwkit will assume the service contains a dynamic definition and attempt to execute the file, passing the zone, location (local or remote), and service name as arguments. Included with fwkit is a command called `fwksrv` which can generate services using simplified YAML.
 
 ```
-# ls /etc/fwkit/role.active/zones/default/services/local
-lrwxrwxrwx 1 root root 35 Jul 20 18:01 dns.service -> /etc/fwkit/role.active/zones/default/services/local/dns.service
-lrwxrwxrwx 1 root root 35 Jul 20 18:01 ntp.service -> /etc/fwkit/role.active/zones/default/services/local/ntp.service
-lrwxrwxrwx 1 root root 36 Jul 20 18:01 smtp.service -> /etc/fwkit/role.active/zones/default/services/local/smtp.service
-lrwxrwxrwx 1 root root 35 Jul 20 18:37 ssh.service -> /etc/fwkit/role.active/zones/default/services/local/ssh.service
-```
-
-If service definition files have the execute bit set, then fwkit attempts to run the definition as a script. The script is passed two arguments: the zone the service is being enabled for, and the location of the service (*local* or *remote*). The script's output is captured and is included in the compiled rule data. fwkit includes an utility that called `fwksrv` which is used to allow for YAML service definitions. A service definition using a YAML format looks like:
-
-```yaml
 #!/usr/sbin/fwksrv
-# fwkit - local/dns.service - Domain Name Service; 53/tcp, 53/udp
+# fwkit - ssh.service - Secure Shell Server; 22/tcp
 
 services:
-  dns:
-    description: Domain Name Service
+  ssh:
+    description: SSH (Secure Shell Protocol)
     connections:
       -
         protocol: tcp
-        listen_port: 53
-      -
-        protocol: udp
-        listen_port: 53
+        listen_port: 22
+        states: new
+
 ```
+
+The service must include a shebang line in order to run the intepreter, so the second line is used for the service comment instead.
+
+The included services are all defined using this YAML structure, so use them for reference when writing your own definitions.
+
+When a service is enabled, it is copied into the active role's `zones/<zone>/services/local` or `zones/<zone>/services/remote` sub-directory. For dynamic service definitions, the generated definition is copied instead.
 
 Configuration
 -------------
