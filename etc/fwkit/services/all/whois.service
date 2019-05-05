@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - whois.service - Whois Domain Lookup; 43/tcp
+
+services:
+  ssh:
+    description: Whois
+    connections:
+      -
+        protocol: tcp
+        listen_port: 43
+        states: new

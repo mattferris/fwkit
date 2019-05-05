@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - openvpn.service - OpenVPN; 1194/udp
+
+services:
+  dns:
+    description: OpenVPN
+    connections:
+      -
+        protocol: udp
+        listen_port: 1194
+        states: new

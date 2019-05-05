@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - whois.service - Internet Mail Access Protocol over TLS; 993/tcp
+
+services:
+  ssh:
+    description: IMAPS (Internet Mail Access Protoco over TLS)
+    connections:
+      -
+        protocol: tcp
+        listen_port: 993
+        states: new

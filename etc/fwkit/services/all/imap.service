@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - imap.service - Internet Mail Access Protocol; 143/tcp
+
+services:
+  ssh:
+    description: IMAP (Internet Mail Access Protocol)
+    connections:
+      -
+        protocol: tcp
+        listen_port: 143
+        states: new

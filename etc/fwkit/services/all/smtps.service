@@ -1,0 +1,11 @@
+#!/usr/sbin/fwksrv
+# fwkit - smtp.service - Simple Message Transfer Protocol over TLS; 465/tcp
+
+services:
+  smtp:
+    description: SMTPS (Simple Message Transfer Protocol over TLS)
+    connections:
+      -
+        protocol: tcp
+        listen_port: 25
+        states: new
