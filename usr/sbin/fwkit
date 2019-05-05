@@ -185,10 +185,10 @@ case $mode in
                 desc=$5
 
                 if [ -z "$role" ]; then
-                    echo "\nusage: $myname $mode $action <name> <policy> <description>\n"
+                    echo "\nusage: $myname $mode $action <name> [ allow | deny ] [ <description> ]\n"
                     echo "    name         The name of the role to create"
-                    echo "    policy       The default packet policy of the role (allow or deny)"
                     echo "    description  An optional description for the new role\n"
+                    echo "    By default, roles use a deny policy unless specified while defining it.\n"
                     exit 1
                 fi
 
