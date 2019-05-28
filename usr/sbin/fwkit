@@ -673,9 +673,24 @@ case $mode in
                     doerror 2 "default action must be 'allow' or 'deny', '$defaction' given"
                 fi
 
+                if (fwk-acl path "$name" 2>1 >/dev/null); then
+                    doerror 1 "ACL already exists: $name"
+                fi
+
                 tf=$(mktemp /tmp/fwkit.acl.XXXXXXXX)
+
+                cat <<EOF | sed -E 's/^\s+//' > "$tf"
+                    # Add ACL entries, one per line.
+                    #
+                    # Fields are: [action] [IP address] [description]
+                    #
+                    # The description field can contain spaces.
+                    #
+                    # e.g. allow 192.168.0.5 Block this host
+EOF
+
                 ${EDITOR:-vi} "$tf"
-                fwk-acl write "$name" "$defaction" < "$tf"
+                grep -v -e '^#' -e '^$' < "$tf" | fwk-acl write "$name" "$defaction"
                 rm "$tf"
                 ;;
 
@@ -694,7 +709,7 @@ case $mode in
                 defaction=$(fwk-acl read "$name" | head -n1 | cut -d\  -f2)
                 fwk-acl read "$name" | tail -n+2 > "$tf"
                 ${EDITOR:-vi} "$tf"
-                fwk-acl write "$name" "$defaction" < "$tf"
+                grep -v -e '^#' -e '^$' < "$tf" | fwk-acl write "$name" "$defaction"
                 rm "$tf"
                 ;;
 
@@ -715,7 +730,7 @@ case $mode in
 
                 echo "\nACL $name"
                 printf '\n%-7s%-45s%s\n\n' "Action" "Source" "Description"
-                echo $(fwk-acl read "$name" | grep -v -e '^default') | { while read line; do
+                (fwk-acl read "$name" | grep -v -e '^default') | { while read line; do
                     aclaction=$(echo $line | awk '{print $1}')
                     source=$(echo $line | awk '{print $2}')
                     description=$(echo $line | awk '{$1=$2=""; print $0}' | sed -r 's/^\s+//')
