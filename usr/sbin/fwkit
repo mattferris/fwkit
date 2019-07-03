@@ -549,7 +549,7 @@ case $mode in
                     doerror 1 "config value must be specified"
                 fi
 
-                echo "$value" | fwk-config "$name"
+                echo "$value" | fwk-config write "$name"
                 ;;
 
             get)
