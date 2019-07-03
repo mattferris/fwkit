@@ -402,11 +402,13 @@ case $mode in
                     srvfile="$etcdir/services/$type/$service.service"
                     if [ -x "$srvfile" ]; then
                         "$srvfile" "$zone" "$type" | fwk-service add "$zone" "$type" "$service"
+                        services="$services $service"
+                    elif [ ! -r "$srvfile" ]; then
+                        donotice "ignoring non-existent service $zone.$type.$service"
                     else
                         fwk-service add "$zone" "$type" "$service" < "$etcdir/services/$type/$service.service"
+                        services="$services $service"
                     fi
-
-                    services="$services $service"
 
                 done
 
