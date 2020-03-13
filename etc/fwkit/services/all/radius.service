@@ -2,7 +2,7 @@
 # fwkit - radius.service - RADIUS Authentication; 1812/tcp, 1812/udp
 
 services:
-  raduis:
+  radius:
     description: RADIUS Authentication
     connections:
       -
